@@ -3,51 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Continuous Polygenic Betta Canvas</title>
+    <title>Polygenic Betta Selective Breeding Lab</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #01050d; font-family: monospace; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #010c1a; font-family: monospace; }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        .genetics-hud {
+        .hud-panel {
             position: absolute;
-            top: 25px;
-            left: 25px;
+            top: 20px;
+            left: 20px;
             z-index: 10;
-            color: #70e000;
-            background: rgba(1, 6, 15, 0.92);
-            padding: 18px;
-            border: 1px solid #38b000;
+            color: #00f5d4;
+            background: rgba(2, 16, 37, 0.95);
+            padding: 15px;
+            border: 1px solid #00b4d8;
             border-radius: 6px;
-            pointer-events: none;
-            box-shadow: 0 0 25px rgba(56, 176, 0, 0.15);
+            box-shadow: 0 0 20px rgba(0, 245, 212, 0.15);
+            width: 280px;
         }
-        .hud-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1.5px; color: #ccff33;}
-        .hud-stat { font-size: 0.85rem; color: #fff; opacity: 0.85; margin-top: 4px; }
+        .hud-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 8px; text-transform: uppercase; color: #ccff33; }
+        .hud-stat { font-size: 0.8rem; color: #fff; opacity: 0.9; margin-bottom: 4px; }
         
+        .breed-panel {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #00b4d8;
+        }
+        .selector-slot {
+            background: rgba(255,255,255,0.05);
+            padding: 6px;
+            margin-bottom: 6px;
+            font-size: 0.75rem;
+            color: #aaa;
+            border-radius: 4px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .selector-slot.active { color: #fff; border: 1px solid #ccff33; background: rgba(204,255,51,0.05); }
+        
+        input[type="text"] {
+            width: 100%;
+            background: #010c1a;
+            border: 1px solid #00b4d8;
+            color: #fff;
+            padding: 5px;
+            margin-bottom: 8px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border-radius: 4px;
+        }
+        input[type="text"]:focus { outline: none; border-color: #ccff33; }
+        
+        button {
+            width: 100%;
+            background: #00b4d8;
+            color: #010c1a;
+            border: none;
+            padding: 8px;
+            font-weight: bold;
+            font-family: monospace;
+            cursor: pointer;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        button:hover { background: #ccff33; }
+        button:disabled { background: #334e68; color: #627d98; cursor: not-allowed; }
+
         .interaction-tip {
             position: absolute;
-            bottom: 25px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.4);
             font-size: 0.75rem;
             pointer-events: none;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <div class="genetics-hud">
-        <div class="hud-title">🧬 Continuous Polygenic Lab</div>
-        <div class="hud-stat" id="pop-count">Population: 0</div>
-        <div class="hud-stat" id="mutation-count">Accumulated Mutations: 0</div>
+    <div class="hud-panel">
+        <div class="hud-title">🧬 Selective Breeding Lab</div>
+        <div class="hud-stat" id="pop-count">Bettas: 0</div>
+        
+        <div class="breed-panel">
+            <div class="hud-title" style="font-size:0.8rem; color:#00b4d8;">Mating Selection</div>
+            <div class="selector-slot" id="slot-a">Parent A: Click a Betta...</div>
+            <div class="selector-slot" id="slot-b">Parent B: Click a second Betta...</div>
+            <input type="text" id="breeder-input" placeholder="Enter Breeder Name" value="Lab Assistant">
+            <button id="breed-btn" disabled onclick="executeManualBreeding()">Perform Cross</button>
+        </div>
     </div>
 
-    <div class="interaction-tip">Click to release nutrients. Unique lineages emerge upon interaction.</div>
+    <div class="interaction-tip">
+        Click a Betta to select for breeding.<br>Click empty water to drop nutritional pellets.
+    </div>
 
     <canvas id="aquarium-canvas"></canvas>
 
@@ -55,219 +111,252 @@
         const canvas = document.getElementById('aquarium-canvas');
         const ctx = canvas.getContext('2d');
         const popCountEl = document.getElementById('pop-count');
-        const mutCountEl = document.getElementById('mutation-count');
+        const slotAEl = document.getElementById('slot-a');
+        const slotBEl = document.getElementById('slot-b');
+        const breedBtn = document.getElementById('breed-btn');
+        const breederInput = document.getElementById('breeder-input');
 
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
 
         const school = [];
         const foods = [];
-        const ripples = [];
-        
-        let totalMutations = 0;
+        let selectedA = null;
+        let selectedB = null;
         let audioCtx = null;
-        const MUTATION_RATE = 0.04; // 4% point mutation probability per locus allele cross
 
         window.addEventListener('resize', () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         });
 
-        function playSynthesisTone(freq, duration, type = 'sine') {
+        function playTone(freq, duration, type = 'sine') {
             try {
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (audioCtx.state === 'suspended') audioCtx.resume();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
+                osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.type = type;
                 osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                if(type === 'triangle') osc.frequency.exponentialRampToValueAtTime(freq * 1.3, audioCtx.currentTime + duration);
-                gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
                 osc.start(); osc.stop(audioCtx.currentTime + duration);
             } catch(e){}
         }
 
         window.addEventListener('click', (e) => {
-            foods.push({ x: e.clientX, y: e.clientY, radius: 3.5 });
-            ripples.push({ x: e.clientX, y: e.clientY, radius: 2, maxRadius: 55, alpha: 0.25, color: '154, 235, 23' });
-            playSynthesisTone(200, 0.1, 'sine');
+            // Prevent dropping food if clicking the HUD panel elements
+            if (e.clientX < 310 && e.clientY < 300) return;
+
+            // Check if user clicked on a fish vector target boundary
+            let clickedFish = null;
+            for (let betta of school) {
+                const dist = Math.sqrt((e.clientX - betta.x) ** 2 + (e.clientY - betta.y) ** 2);
+                if (dist < 40) { clickedFish = betta; break; }
+            }
+
+            if (clickedFish) {
+                handleFishSelection(clickedFish);
+            } else {
+                foods.push({ x: e.clientX, y: e.clientY, radius: 4, vy: 1.2 });
+                playTone(220, 0.08, 'sine');
+            }
         });
 
-        // Helper function to convert dynamic HSL data strings to CSS format
-        function hslStr(h, s, l, a = 1) {
-            return `hsla(${h % 360}, ${Math.min(100, Math.max(0, s))}%, ${Math.min(100, Math.max(0, l))}%25, ${a})`;
+        function handleFishSelection(fish) {
+            if (selectedA === fish) {
+                selectedA = null;
+            } else if (selectedB === fish) {
+                selectedB = null;
+            } else if (!selectedA) {
+                selectedA = fish;
+            } else {
+                selectedB = fish;
+            }
+            updateSelectionHUD();
         }
 
-        class ContinuousBetta {
-            constructor(parentA = null, parentB = null, spawnX = null, spawnY = null) {
+        function updateSelectionHUD() {
+            if (selectedA) {
+                slotAEl.innerText = `A: ID-${selectedA.id} (${selectedA.breeder})`;
+                slotAEl.classList.add('active');
+            } else {
+                slotAEl.innerText = "Parent A: Click a Betta...";
+                slotAEl.classList.remove('active');
+            }
+
+            if (selectedB) {
+                slotBEl.innerText = `B: ID-${selectedB.id} (${selectedB.breeder})`;
+                slotBEl.classList.add('active');
+            } else {
+                slotBEl.innerText = "Parent B: Click a second Betta...";
+                slotBEl.classList.remove('active');
+            }
+
+            breedBtn.disabled = !(selectedA && selectedB);
+        }
+
+        function executeManualBreeding() {
+            if (!selectedA || !selectedB) return;
+            
+            const breederName = breederInput.value.trim() || "Unknown Breeder";
+            
+            // Execute polygenic cross recombination layout routines
+            const fry = new AquariumBetta(selectedA.genome, selectedB.genome, selectedA.x, selectedA.y, breederName);
+            school.push(fry);
+            
+            playTone(440, 0.3, 'triangle');
+            
+            // Clear choices
+            selectedA = null;
+            selectedB = null;
+            updateSelectionHUD();
+        }
+
+        function hslStr(h, s, l, a = 1) {
+            return `hsla(${h % 360}, ${Math.min(100, Math.max(0, s))}%25, ${Math.min(100, Math.max(0, l))}%25, ${a})`;
+        }
+
+        let idCounter = 1;
+
+        class AquariumBetta {
+            constructor(parentA = null, parentB = null, spawnX = null, spawnY = null, breederName = "Wild Lineage") {
+                this.id = idCounter++;
+                this.breeder = breederName;
                 this.x = spawnX || Math.random() * width;
-                this.y = spawnY || Math.random() * height;
+                this.y = spawnY || (0.2 + Math.random() * 0.6) * height;
                 
-                const angle = Math.random() * Math.PI * 2;
-                this.vx = Math.cos(angle) * 0.9;
-                this.vy = Math.sin(angle) * 0.9;
+                // Horizontal tracking vectors for Side-View Aquarium framework
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 0.4;
                 this.maxForce = 0.02;
-                this.perceptionRadius = 120;
+                this.perceptionRadius = 130;
+                this.facingRight = this.vx > 0;
 
                 // --- POLYGENIC CONTINUOUS DYNAMICS CHROMOSOMES ---
-                // Mapped as diploid float arrays containing quantitative expression variables
                 if (parentA && parentB) {
                     this.genome = {
-                        hueBase:    this.crossLocus(parentA.hueBase, parentB.hueBase, 360, true),
-                        hueAccent:  this.crossLocus(parentA.hueAccent, parentB.hueAccent, 360, true),
-                        metallic:   this.crossLocus(parentA.metallic, parentB.metallic, 1.0, false),
-                        finSize:    this.crossLocus(parentA.finSize, parentB.finSize, 2.5, false),
-                        tailSpread: this.crossLocus(parentA.tailSpread, parentB.tailSpread, 3.0, false),
-                        crownRay:   this.crossLocus(parentA.crownRay, parentB.crownRay, 1.0, false)
+                        hueBase:    this.cross(parentA.hueBase, parentB.hueBase, 360, true),
+                        hueAccent:  this.cross(parentA.hueAccent, parentB.hueAccent, 360, true),
+                        metallic:   this.cross(parentA.metallic, parentB.metallic, 1.0, false),
+                        finSize:    this.cross(parentA.finSize, parentB.finSize, 2.2, false),
+                        tailSpread: this.cross(parentA.tailSpread, parentB.tailSpread, 2.5, false)
                     };
                 } else {
-                    // Random generation for ancestral pristine foundation stock
                     this.genome = {
                         hueBase:    [Math.random() * 360, Math.random() * 360],
                         hueAccent:  [Math.random() * 360, Math.random() * 360],
                         metallic:   [Math.random(), Math.random()],
-                        finSize:    [0.7 + Math.random() * 0.8, 0.7 + Math.random() * 0.8],
-                        tailSpread: [1.2 + Math.random() * 1.5, 1.2 + Math.random() * 1.5],
-                        crownRay:   [Math.random() > 0.75 ? Math.random() * 0.8 : 0, Math.random() > 0.75 ? Math.random() * 0.8 : 0]
+                        finSize:    [0.8 + Math.random() * 0.8, 0.8 + Math.random() * 0.8],
+                        tailSpread: [1.0 + Math.random() * 1.2, 1.0 + Math.random() * 1.2]
                     };
                 }
 
                 this.expressPhenotypes();
 
-                // Kinematic Tracking Arrays
-                this.bodyLength = 11;
+                // Kinematic Log Array configured for horizontal current tail lag drag
+                this.bodyLength = 10;
                 this.history = [];
-                for(let i = 0; i < 35; i++) {
-                    this.history.push({ x: this.x, y: this.y, angle: angle });
+                for(let i = 0; i < 30; i++) {
+                    this.history.push({ x: this.x, y: this.y, vy: this.vy });
                 }
-
                 this.swimCycle = Math.random() * 100;
-                this.reproductionCooldown = parentA ? 600 : 150;
             }
 
-            // Cross Locus transmission with stochastic point-shifting mutation drift
-            crossLocus(pairA, pairB, maxRange, isCircular) {
-                const alleleA = pairA[Math.floor(Math.random() * 2)];
-                const alleleB = pairB[Math.floor(Math.random() * 2)];
-                let outputPair = [alleleA, alleleB];
-
-                // Check replication transcription error threshold
-                if (Math.random() < MUTATION_RATE) {
-                    totalMutations++;
-                    const targetIdx = Math.floor(Math.random() * 2);
-                    if (isCircular) {
-                        outputPair[targetIdx] = (outputPair[targetIdx] + (Math.random() * 120 - 60) + 360) % maxRange;
-                    } else {
-                        outputPair[targetIdx] = Math.min(maxRange, Math.max(0.1, outputPair[targetIdx] + (Math.random() * 0.4 - 0.2)));
-                    }
-                    ripples.push({ x: this.x, y: this.y, radius: 4, maxRadius: 140, alpha: 0.8, color: '204, 255, 51' });
-                    playSynthesisTone(680, 0.3, 'triangle');
+            cross(pairA, pairB, range, circular) {
+                const a = pairA[Math.floor(Math.random() * 2)];
+                const b = pairB[Math.floor(Math.random() * 2)];
+                let out = [a, b];
+                if (Math.random() < 0.05) { // 5% Mutation factor layer
+                    const idx = Math.floor(Math.random() * 2);
+                    out[idx] = circular ? (out[idx] + (Math.random() * 100 - 50) + 360) % range : Math.min(range, Math.max(0.1, out[idx] + (Math.random() * 0.3 - 0.15)));
                 }
-                return outputPair;
+                return out;
             }
 
             expressPhenotypes() {
-                // Quantitative co-dominance summation (mean averaging allele values)
-                const resolve = (pair) => (pair[0] + pair[1]) * 0.5;
-
+                const resolve = (p) => (p[0] + p[1]) * 0.5;
                 this.phenotype = {
-                    hBase:   resolve(this.genome.hueBase),
-                    hAcc:    resolve(this.genome.hueAccent),
-                    metal:   resolve(this.genome.metallic),
-                    fSize:   resolve(this.genome.finSize),
-                    spread:  resolve(this.genome.tailSpread),
-                    cRay:    resolve(this.genome.crownRay)
+                    hBase: resolve(this.genome.hueBase),
+                    hAcc:  resolve(this.genome.hueAccent),
+                    metal: resolve(this.genome.metallic),
+                    fSize: resolve(this.genome.finSize),
+                    spread: resolve(this.genome.tailSpread)
                 };
 
-                // Form color palette models
                 this.colorCore = hslStr(this.phenotype.hBase, 85, 45, 1);
-                this.colorFinInner = hslStr(this.phenotype.hBase, 90, 40, 0.3);
-                this.colorFinOuter = hslStr(this.phenotype.hAcc, 95, 50, 0.22);
-                this.colorGlint = hslStr(this.phenotype.hAcc, 100, 75, this.phenotype.metal * 0.8);
-
-                this.maxSpeed = 1.5 - (this.phenotype.fSize * 0.2); // Fin drag calculation
+                this.colorFinInner = hslStr(this.phenotype.hBase, 90, 40, 0.35);
+                this.colorFinOuter = hslStr(this.phenotype.hAcc, 95, 52, 0.25);
+                this.colorGlint = hslStr(this.phenotype.hAcc, 100, 75, this.phenotype.metal * 0.7);
+                
+                this.maxSpeed = 1.4 - (this.phenotype.fSize * 0.15);
             }
 
             update() {
-                if(this.reproductionCooldown > 0) this.reproductionCooldown--;
-
                 this.x += this.vx;
                 this.y += this.vy;
 
-                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (speed > this.maxSpeed) {
-                    this.vx = (this.vx / speed) * this.maxSpeed;
-                    this.vy = (this.vy / speed) * this.maxSpeed;
-                }
+                if (Math.abs(this.vx) > 0.1) this.facingRight = this.vx > 0;
 
-                const pad = 70;
-                if (this.x < -pad) this.x = width + pad;
-                if (this.x > width + pad) this.x = -pad;
-                if (this.y < -pad) this.y = height + pad;
-                if (this.y > height + pad) this.y = -pad;
+                // Simple Aquarium wall bounds bouncing parameters
+                if (this.x < 40) { this.x = 40; this.vx *= -1; }
+                if (this.x > width - 40) { this.x = width - 40; this.vx *= -1; }
+                if (this.y < 50) { this.y = 50; this.vy *= -1; }
+                if (this.y > height - 50) { this.y = height - 50; this.vy *= -1; }
 
-                this.swimCycle += speed * 0.09;
-                const headAngle = Math.atan2(this.vy, this.vx);
-                
-                this.history.unshift({ x: this.x, y: this.y, angle: headAngle });
-                if (this.history.length > 40) this.history.pop();
+                const speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                this.swimCycle += speed * 0.12 + 0.02;
+
+                // Inject forward positioning kinematics while keeping vertical history data vectors intact
+                this.history.unshift({ x: this.x, y: this.y, vy: this.vy });
+                if (this.history.length > 35) this.history.pop();
             }
 
             flock(school) {
-                let sepX = 0, sepY = 0, aliX = 0, aliY = 0, cohX = 0, cohY = 0, neighbors = 0;
-
+                let sepX = 0, sepY = 0, neighbors = 0;
                 for (let other of school) {
                     if (other === this) continue;
                     const dX = other.x - this.x;
                     const dY = other.y - this.y;
-                    const dist = Math.sqrt(dX * dX + dY * dY);
-
-                    if (dist < this.perceptionRadius) {
+                    const dist = Math.sqrt(dX*dX + dY*dY);
+                    if (dist < 70) {
                         sepX -= dX / (dist + 0.001);
                         sepY -= dY / (dist + 0.001);
-                        aliX += other.vx; aliY += other.vy;
-                        cohX += other.x; cohY += other.y;
                         neighbors++;
-                    }
-
-                    // Breeding engagement overlap triggers meiosis loop calculations
-                    if (dist < 22 && this.reproductionCooldown === 0 && other.reproductionCooldown === 0 && school.length < 50) {
-                        this.reproductionCooldown = 550;
-                        other.reproductionCooldown = 550;
-                        const fry = new ContinuousBetta(this.genome, other.genome, this.x, this.y);
-                        school.push(fry);
-                        ripples.push({ x: this.x, y: this.y, radius: 5, maxRadius: 85, alpha: 0.5, color: '255, 255, 255' });
-                        playSynthesisTone(349, 0.2, 'sine');
                     }
                 }
 
                 if (neighbors > 0) {
-                    aliX /= neighbors; aliY /= neighbors; cohX /= neighbors; cohY /= neighbors;
-                    let sF = this.steer(sepX * 2.2, sepY * 2.2);
-                    let aF = this.steer(aliX, aliY);
-                    let cF = this.steer(cohX - this.x, cohY - this.y);
-                    this.vx += sF.x * 1.1 + aF.x * 0.5 + cF.x * 0.4;
-                    this.vy += sF.y * 1.1 + aF.y * 0.5 + cF.y * 0.4;
+                    let sF = this.steer(sepX * 1.8, sepY * 1.2);
+                    this.vx += sF.x; this.vy += sF.y;
                 }
 
+                // Aquarium Food Targeting tracking logic
                 if (foods.length > 0) {
-                    let closestFood = null; let closestDist = Infinity;
+                    let closest = null; let closestDist = Infinity;
                     for (let food of foods) {
-                        const fDist = Math.sqrt((food.x-this.x)**2 + (food.y-this.y)**2);
-                        if (fDist < closestDist) { closestDist = fDist; closestFood = food; }
+                        const d = Math.sqrt((food.x-this.x)**2 + (food.y-this.y)**2);
+                        if (d < closestDist) { closestDist = d; closest = food; }
                     }
-                    if (closestFood && closestDist < 280) {
-                        let fSeek = this.steer(closestFood.x - this.x, closestFood.y - this.y);
-                        this.vx += fSeek.x * 1.5; this.vy += fSeek.y * 1.5;
-                        if (closestDist < 12) {
-                            const idx = foods.indexOf(closestFood);
+                    if (closest && closestDist < 400) {
+                        let fSeek = this.steer(closest.x - this.x, closest.y - this.y);
+                        this.vx += fSeek.x * 1.4; this.vy += fSeek.y * 1.4;
+                        if (closestDist < 15) {
+                            const idx = foods.indexOf(closest);
                             if (idx > -1) foods.splice(idx, 1);
                         }
                     }
                 }
+
+                // Random idle cruising wander vectors
+                if (Math.random() < 0.02) {
+                    this.vx += (Math.random() - 0.5) * 0.4;
+                    this.vy += (Math.random() - 0.5) * 0.15;
+                }
+
+                const s = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                if (s > this.maxSpeed) { this.vx = (this.vx/s)*this.maxSpeed; this.vy = (this.vy/s)*this.maxSpeed; }
             }
 
             steer(tX, tY) {
@@ -280,124 +369,131 @@
             draw() {
                 ctx.save();
                 
-                const getSegment = (idx) => this.history[Math.min(idx, this.history.length - 1)];
+                const getSeg = (idx) => this.history[Math.min(idx, this.history.length - 1)];
                 
-                const head = getSegment(0);
-                const thorax = getSegment(4);
-                const abdomen = getSegment(10);
-                const baseTail = getSegment(16);
-                const tipTail = getSegment(26);
+                const bodyLengthFactor = this.phenotype.fSize;
+                const tailLength = 40 * bodyLengthFactor;
 
-                const wave = Math.sin(this.swimCycle) * 0.18;
-                const leftAngle = baseTail.angle + Math.PI / 2 + wave;
-                const rightAngle = baseTail.angle - Math.PI / 2 + wave;
-                
-                const finScaleFactor = this.phenotype.fSize;
-                const lengthMod = 35 * finScaleFactor;
+                // Determine directional orientation modifiers
+                const dir = this.facingRight ? -1 : 1; 
 
-                // Create watercolor blend gradient fields for fin elements
-                const finGradient = ctx.createRadialGradient(abdomen.x, abdomen.y, 5, baseTail.x, baseTail.y, lengthMod * 1.5);
-                finGradient.addColorStop(0, this.colorFinInner);
-                finGradient.addColorStop(0.5, this.colorFinOuter);
-                finGradient.addColorStop(1, 'rgba(0,0,0,0)');
+                // Dynamic vertical fluid displacement calculations mapping fin lag vectors
+                const verticalLag = Math.sin(this.swimCycle) * 6 * bodyLengthFactor;
 
-                ctx.fillStyle = finGradient;
+                // Setup translucent watercolor gradient assets
+                const finGrad = ctx.createLinearGradient(this.x, this.y, this.x + (tailLength * dir), this.y + verticalLag);
+                finGrad.addColorStop(0, this.colorFinInner);
+                finGrad.addColorStop(0.6, this.colorFinOuter);
+                finGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = finGrad;
 
-                // 1. EXTENDED VENTRAL & PECTORAL LAYER BLENDS
-                ctx.beginPath();
-                ctx.arc(thorax.x, thorax.y, 15 * finScaleFactor, thorax.angle - Math.PI/1.3, thorax.angle + Math.PI/1.3);
-                ctx.fill();
-
-                // 2. MAIN CAUDAL VEIL FLUID FAN PATH
-                ctx.beginPath();
-                ctx.moveTo(abdomen.x, abdomen.y);
-
-                if (this.phenotype.cRay > 0.2) {
-                    // Continuous Crown serration logic tracking interpolation positions
-                    const rayCount = 12;
-                    const rayIntensity = this.phenotype.cRay;
-                    for (let j = 0; j <= rayCount; j++) {
-                        const factor = j / rayCount;
-                        const stepAngle = baseTail.angle + Math.PI + (factor - 0.5) * this.phenotype.spread;
-                        const currentLength = lengthMod * (1.0 + Math.sin(factor * Math.PI) * 0.4) * (j % 2 === 0 ? 1.0 : 1.0 - rayIntensity * 0.3);
-                        
-                        ctx.lineTo(tipTail.x + Math.cos(stepAngle) * currentLength, 
-                                   tipTail.y + Math.sin(stepAngle) * currentLength);
-                    }
-                    ctx.lineTo(abdomen.x, abdomen.y);
-                } else {
-                    // Smooth flowing continuous fan curvatures
-                    ctx.bezierCurveTo(
-                        baseTail.x + Math.cos(leftAngle) * (lengthMod * this.phenotype.spread),
-                        baseTail.y + Math.sin(leftAngle) * (lengthMod * this.phenotype.spread),
-                        tipTail.x + Math.cos(baseTail.angle + Math.PI) * (lengthMod * 2.2),
-                        tipTail.y + Math.sin(baseTail.angle + Math.PI) * (lengthMod * 2.2),
-                        abdomen.x + Math.cos(rightAngle) * (lengthMod * this.phenotype.spread),
-                        abdomen.y + Math.sin(rightAngle) * (lengthMod * this.phenotype.spread)
-                    );
+                // Draw Selection Highlight Rings
+                if (selectedA === this || selectedB === this) {
+                    ctx.strokeStyle = '#ccff33';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(this.x, this.y, 25, 0, Math.PI*2); ctx.stroke();
+                    ctx.font = '9px monospace';
+                    ctx.fillStyle = '#ccff33';
+                    ctx.fillText(selectedA === this ? 'Parent A' : 'Parent B', this.x - 22, this.y - 32);
                 }
-                ctx.closePath();
-                ctx.fill();
 
-                // 3. ANTERIOR DORSAL VEIL DRESS RIDGE
+                // 1. ANTERIOR DORSAL VEIL (Draped Side-View Crest)
                 ctx.beginPath();
-                ctx.moveTo(thorax.x, thorax.y);
-                ctx.quadraticCurveTo(abdomen.x + Math.cos(leftAngle) * (lengthMod * 0.8), abdomen.y + Math.sin(leftAngle) * (lengthMod * 0.8), baseTail.x, baseTail.y);
-                ctx.lineTo(abdomen.x, abdomen.y);
-                ctx.closePath();
-                ctx.fill();
+                ctx.moveTo(this.x - (4 * dir), this.y - 4);
+                ctx.bezierCurveTo(
+                    this.x + (15 * dir), this.y - (25 * finGrad.scale || 25),
+                    this.x + (35 * dir), this.y - (30 * finScaleFactor) + verticalLag,
+                    this.x + (25 * dir), this.y
+                );
+                ctx.closePath(); ctx.fill();
 
-                // 4. METALLIC GUANINE HIGHLIGHT SHADER MASK
-                if (this.phenotype.metal > 0.3) {
+                // 2. VENTRAL FLUID BANNER FIN (Lower hanging curtain)
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + 3);
+                ctx.bezierCurveTo(
+                    this.x + (10 * dir), this.y + 25,
+                    this.x + (40 * dir), this.y + (28 * finScaleFactor) + verticalLag,
+                    this.x + (30 * dir), this.y + 5
+                );
+                ctx.closePath(); ctx.fill();
+
+                // 3. MAIN CAUDAL TAIL DRAG VEIL (Graceful banner flow physics)
+                ctx.beginPath();
+                ctx.moveTo(this.x + (12 * dir), this.y);
+                
+                const spreadY = 22 * this.phenotype.spread;
+                ctx.bezierCurveTo(
+                    this.x + (30 * dir), this.y - spreadY + (verticalLag * 0.5),
+                    this.x + (tailLength * dir), this.y - (spreadY * 0.5) + verticalLag,
+                    this.x + (tailLength * dir), this.y + verticalLag
+                );
+                ctx.bezierCurveTo(
+                    this.x + (tailLength * dir), this.y + (spreadY * 0.5) + verticalLag,
+                    this.x + (30 * dir), this.y + spreadY + (verticalLag * 0.5),
+                    this.x + (12 * dir), this.y + 2
+                );
+                ctx.closePath(); ctx.fill();
+
+                // 4. METALLIC GUANINE SCALING HIGHLIGHT SHADER MASK
+                if (this.phenotype.metal > 0.35) {
                     ctx.fillStyle = this.colorGlint;
                     ctx.beginPath();
-                    ctx.arc(abdomen.x, abdomen.y, lengthMod * 0.6, baseTail.angle - Math.PI/2, baseTail.angle + Math.PI/2);
+                    ctx.ellipse(this.x + (4 * dir), this.y + 1, 8, 4, 0, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
-                // 5. SOLID STRUCTURAL ANATOMY PATH
+                // 5. SOLID STRUCTURAL ANATOMY TAPER (Side-View Profile)
                 ctx.fillStyle = this.colorCore;
                 for (let i = 0; i < this.bodyLength; i++) {
-                    const seg = getSegment(i * 2);
-                    const thickness = (this.bodyLength - i) * 1.3;
+                    const seg = getSeg(i * 2);
+                    const thickness = (this.bodyLength - i) * 0.9;
+                    // Taper down body horizontally following historical points
+                    const drawX = this.x + (i * 2.2 * dir);
+                    const drawY = seg.y; // Follow historical depth coordinates
+                    
                     ctx.beginPath();
-                    ctx.arc(seg.x, seg.y, thickness, 0, Math.PI * 2);
+                    ctx.arc(drawX, drawY, thickness, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
-                // Iridescent ocular points
+                // Tiny pectoral fin side overlay
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.beginPath(); ctx.slice || ctx.ellipse(this.x - (2 * dir), this.y + 2, 4, 6, 0.3 * dir, 0, Math.PI*2); ctx.fill();
+
+                // Ocular focus target element
                 ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(head.x + Math.cos(head.angle + 0.65)*3.5, head.y + Math.sin(head.angle + 0.65)*3.5, 0.8, 0, Math.PI*2);
-                ctx.arc(head.x + Math.cos(head.angle - 0.65)*3.5, head.y + Math.sin(head.angle - 0.65)*3.5, 0.8, 0, Math.PI*2);
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x - (7 * dir), this.y - 1, 1, 0, Math.PI*2); ctx.fill();
+                
+                // Display breeder tag under fish profile
+                ctx.font = '8px monospace';
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                ctx.fillText(`ID:${this.id} By: ${this.breeder}`, this.x - 25, this.y + 16);
 
                 ctx.restore();
             }
         }
 
-        // Populate baseline lab stock
-        for(let i=0; i<16; i++) { school.push(new ContinuousBetta()); }
+        // Setup primary laboratory base stock population
+        for(let i = 0; i < 10; i++) { school.push(new AquariumBetta()); }
 
         function engineLoop() {
-            ctx.fillStyle = 'rgba(1, 4, 12, 0.22)'; // Transparent blending trails
+            // Aquarium dark depth background wash
+            ctx.fillStyle = 'rgba(1, 10, 24, 0.25)';
             ctx.fillRect(0, 0, width, height);
 
-            popCountEl.innerText = `Polygenic Bettas: ${school.length}`;
-            mutCountEl.innerText = `Accumulated Mutations: ${totalMutations}`;
+            popCountEl.innerText = `Bettas Active: ${school.length}`;
 
-            // Render Interaction Ripples
-            for (let i = ripples.length - 1; i >= 0; i--) {
-                let r = ripples[i]; r.radius += 1.8; r.alpha -= 0.012;
-                if (r.alpha <= 0) { ripples.splice(i, 1); continue; }
-                ctx.strokeStyle = `rgba(${r.color}, ${r.alpha})`;
-                ctx.lineWidth = 1.0; ctx.beginPath();
-                ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2); ctx.stroke();
+            // Process Food Physics (Gravity sink routine)
+            for (let i = foods.length - 1; i >= 0; i--) {
+                let f = foods[i];
+                f.y += f.vy;
+                if (f.y > height - 20) {
+                    foods.splice(i, 1);
+                    continue;
+                }
+                ctx.fillStyle = '#ccff33';
+                ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2); ctx.fill();
             }
-
-            // Draw Pellets
-            ctx.fillStyle = '#ccff33';
-            for (let f of foods) { ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2); ctx.fill(); }
 
             // Update calculations for each entity
             school.forEach(betta => {
@@ -409,6 +505,7 @@
             requestAnimationFrame(engineLoop);
         }
 
+        popCountEl.innerText = `Bettas Active: ${school.length}`;
         engineLoop();
     </script>
 </body>
