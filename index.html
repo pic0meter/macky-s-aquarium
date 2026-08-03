@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>24/7 Live Aesthetic Aquarium Ecosystem</title>
+    <title>24/7 Bird's-Eye Marine Ecosystem</title>
     <style>
-        /* Modern Reset and Layout setup */
         * {
             margin: 0;
             padding: 0;
@@ -18,7 +17,7 @@
             height: 100%;
             overflow: hidden;
             background: #011125;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             transition: background 2s ease-in-out;
         }
 
@@ -31,7 +30,6 @@
             z-index: 1;
         }
 
-        /* Sleek, Minimalist HUD overlay */
         .aquarium-hud {
             position: absolute;
             top: 30px;
@@ -91,7 +89,7 @@
         <div class="eco-status" id="eco-label">Syncing Marine Cycle...</div>
     </div>
 
-    <div class="interaction-tip">Click anywhere inside the tank to feed the fish</div>
+    <div class="interaction-tip">Click to drop food & generate ripples</div>
 
     <canvas id="aquarium-canvas"></canvas>
 
@@ -104,12 +102,9 @@
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
 
-        // Interactive states
         const foods = [];
         const ripples = [];
         let currentTheme = 'afternoon';
-        
-        // Lazy-initialized Web Audio Context (Browsers require user gesture before playing audio)
         let audioCtx = null;
 
         window.addEventListener('resize', () => {
@@ -117,17 +112,10 @@
             height = canvas.height = window.innerHeight;
         });
 
-        // Synthesize an underwater bubble "plop" audio wave purely via code
         function playBubbleSound() {
             try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                
-                // Resume context if suspended by browser auto-play policies
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
 
                 const osc = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
@@ -135,52 +123,29 @@
                 osc.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
 
-                // Quick frequency pitch slide upward to emulate a rising bubble
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime); 
-                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.12);
+                osc.frequency.setValueAtTime(120, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.15);
 
-                // Smooth exponential volume decay
-                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
 
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.15);
-            } catch (e) {
-                console.log("Audio play blocked or unsupported:", e);
-            }
+            } catch (e) { console.log(e); }
         }
 
-        // Handle user clicks to trigger elements
         window.addEventListener('click', (e) => {
-            // Drop Food
-            foods.push({
-                x: e.clientX,
-                y: e.clientY,
-                radius: 4,
-                speed: 1.2
-            });
-
-            // Trigger Visual Ripple Configuration
-            ripples.push({
-                x: e.clientX,
-                y: e.clientY,
-                radius: 2,
-                maxRadius: 60,
-                alpha: 0.6,
-                speed: 2.5
-            });
-
-            // Play procedural audio
+            foods.push({ x: e.clientX, y: e.clientY, radius: 4.5, active: true });
+            ripples.push({ x: e.clientX, y: e.clientY, radius: 2, maxRadius: 70, alpha: 0.5, speed: 2 });
             playBubbleSound();
         });
 
-        // --- TIME CYCLES MANAGEMENT ---
         const THEMES = {
-            morning: { bg: ['#0a3d62', '#001f3f'], fishColor: 'rgba(0, 180, 216, 0.85)', label: 'Morning Light Influx' },
-            afternoon: { bg: ['#005f73', '#0a3d62'], fishColor: 'rgba(0, 245, 212, 0.85)', label: 'Peak Midday Solar' },
-            evening: { bg: ['#1d3557', '#03071e'], fishColor: 'rgba(247, 37, 133, 0.85)', label: 'Crepuscular Transition' },
-            night: { bg: ['#03071e', '#000814'], fishColor: 'rgba(114, 9, 183, 0.9)', label: 'Bioluminescent Abyss Mode' }
+            morning: { bg: ['#0f4c5c', '#001d25'], fishColor: '#e36414', finColor: 'rgba(230, 92, 0, 0.4)', label: 'Morning Estuary' },
+            afternoon: { bg: ['#006d77', '#003554'], fishColor: '#ffb703', finColor: 'rgba(255, 183, 3, 0.4)', label: 'Sunlit Reef Shallows' },
+            evening: { bg: ['#3d348b', '#13001f'], fishColor: '#f72585', finColor: 'rgba(247, 37, 133, 0.4)', label: 'Twilight Current' },
+            night: { bg: ['#050c1a', '#000209'], fishColor: '#7209b7', finColor: 'rgba(114, 9, 183, 0.3)', label: 'Bioluminescent Dynamic Deep' }
         };
 
         function updateEcosystemTime() {
@@ -198,33 +163,37 @@
             statusEl.innerText = `Ecosystem: ${THEMES[activeKey].label}`;
         }
 
-        // --- AMBIENT BUBBLES GENERATOR ---
-        const bubbles = Array.from({ length: 45 }, () => ({
-            x: Math.random() * width,
-            y: Math.random() * height + height,
-            radius: Math.random() * 3.5 + 0.5,
-            speed: Math.random() * 1.2 + 0.4,
-            wobble: Math.random() * 2,
-            wobbleSpeed: Math.random() * 0.03
-        }));
-
-        // --- FISH (BOID CLUSTERS) CLASS ---
-        class Fish {
+        // --- SEGMENTED PHYSICS FISH CLASS (TOP-DOWN VIEW) ---
+        class TopDownFish {
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
                 
                 const angle = Math.random() * Math.PI * 2;
-                this.vx = Math.cos(angle) * 2;
-                this.vy = Math.sin(angle) * 2;
+                this.vx = Math.cos(angle) * 1.5;
+                this.vy = Math.sin(angle) * 1.5;
 
-                this.maxSpeed = 2.2;
-                this.maxForce = 0.04;
-                this.perceptionRadius = 75;
+                this.maxSpeed = 1.8;
+                this.maxForce = 0.03;
+                this.perceptionRadius = 90;
+
+                // Physics Body Customizations
+                this.bodyLength = 9; // Number of joint segments
+                this.segmentSpacing = 5; // Distance between bones
+                this.history = []; // Array to track prior locations for spine physics
+                
+                // Initialize physics backbone array
+                for(let i = 0; i < this.bodyLength; i++) {
+                    this.history.push({ x: this.x, y: this.y });
+                }
+
+                // Aesthetic scaling variations
+                this.sizeScale = Math.random() * 0.4 + 0.8; 
+                this.swimCycle = Math.random() * 100; // Offset animation loops
             }
 
             edges() {
-                const pad = 30;
+                const pad = 50;
                 if (this.x < -pad) this.x = width + pad;
                 if (this.x > width + pad) this.x = -pad;
                 if (this.y < -pad) this.y = height + pad;
@@ -268,13 +237,14 @@
                     cohX /= neighbors; cohY /= neighbors;
 
                     const cohesionForce = this.steer(cohX - this.x, cohY - this.y);
-                    const separationForce = this.steer(sepX * 2.2, sepY * 2.2);
+                    const separationForce = this.steer(sepX * 2.5, sepY * 2.5);
                     const alignmentForce = this.steer(aliX, aliY);
 
-                    this.vx += separationForce.x * 1.4 + alignmentForce.x * 1.0 + cohesionForce.x * 1.0;
-                    this.vy += separationForce.y * 1.4 + alignmentForce.y * 1.0 + cohesionForce.y * 1.0;
+                    this.vx += separationForce.x * 1.5 + alignmentForce.x * 0.8 + cohesionForce.x * 0.8;
+                    this.vy += separationForce.y * 1.5 + alignmentForce.y * 0.8 + cohesionForce.y * 0.8;
                 }
 
+                // Food Target Intercept Logic
                 if (foods.length > 0) {
                     let closestFood = null;
                     let closestDist = Infinity;
@@ -283,7 +253,7 @@
                         const fDX = food.x - this.x;
                         const fDY = food.y - this.y;
                         const fDist = Math.sqrt(fDX * fDX + fDY * fDY);
-                        if (fDist < closestDist && fDist < 250) {
+                        if (fDist < closestDist && fDist < 300) {
                             closestDist = fDist;
                             closestFood = food;
                         }
@@ -291,10 +261,10 @@
 
                     if (closestFood) {
                         const foodSeek = this.steer(closestFood.x - this.x, closestFood.y - this.y);
-                        this.vx += foodSeek.x * 1.8;
-                        this.vy += foodSeek.y * 1.8;
+                        this.vx += foodSeek.x * 2.0;
+                        this.vy += foodSeek.y * 2.0;
 
-                        if (closestDist < 12) {
+                        if (closestDist < 15) {
                             const index = foods.indexOf(closestFood);
                             if (index > -1) foods.splice(index, 1);
                         }
@@ -312,47 +282,90 @@
                     this.vy = (this.vy / speed) * this.maxSpeed;
                 }
                 this.edges();
+
+                // --- SPINE SEGMENTATION KINETIC PHYSICS ---
+                this.swimCycle += speed * 0.12;
+                
+                // Head point acts as leader index
+                this.history[0].x = this.x;
+                this.history[0].y = this.y;
+
+                // Procedural kinematics loop pushing positions down the backbone joints
+                for (let i = 1; i < this.bodyLength; i++) {
+                    const prev = this.history[i - 1];
+                    const curr = this.history[i];
+                    
+                    const dx = curr.x - prev.x;
+                    const dy = curr.y - prev.y;
+                    const distance = Math.sqrt(dx * dx + dx * dy);
+                    const heading = Math.atan2(dy, dx);
+
+                    // Add lateral undulation wave that decreases in size towards the nose
+                    const wave = Math.sin(this.swimCycle - (i * 0.5)) * (i * 0.35) * (speed / this.maxSpeed);
+
+                    curr.x = prev.x + Math.cos(heading) * this.segmentSpacing;
+                    curr.y = prev.y + Math.sin(heading) * this.segmentSpacing + wave;
+                }
             }
 
             draw() {
-                const angle = Math.atan2(this.vy, this.vx);
+                const currentColors = THEMES[currentTheme];
                 ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(angle);
+                
+                ctx.shadowBlur = currentTheme === 'night' ? 10 : 0;
+                ctx.shadowColor = currentColors.fishColor;
 
-                ctx.fillStyle = THEMES[currentTheme].fishColor;
-                ctx.shadowBlur = currentTheme === 'night' ? 12 : 0;
-                ctx.shadowColor = THEMES[currentTheme].fishColor;
+                // Render dynamic translucent fins
+                ctx.fillStyle = currentColors.finColor;
+                const head = this.history[0];
+                const mid = this.history[Math.floor(this.bodyLength / 3)];
+                const tail = this.history[this.bodyLength - 1];
+                const angle = Math.atan2(this.vy, this.vx);
 
+                // Side pectoral fins
                 ctx.beginPath();
-                ctx.moveTo(14, 0);       
-                ctx.lineTo(-10, -5);     
-                ctx.lineTo(-6, 0);       
-                ctx.lineTo(-10, 5);      
+                ctx.arc(mid.x, mid.y, 8 * this.sizeScale, angle - Math.PI/2, angle + Math.PI/2);
+                ctx.fill();
+
+                // Tail Fin structure
+                ctx.beginPath();
+                ctx.moveTo(tail.x, tail.y);
+                ctx.lineTo(tail.x - Math.cos(angle + 0.5) * 14 * this.sizeScale, tail.y - Math.sin(angle + 0.5) * 14 * this.sizeScale);
+                ctx.lineTo(tail.x - Math.cos(angle - 0.5) * 14 * this.sizeScale, tail.y - Math.sin(angle - 0.5) * 14 * this.sizeScale);
                 ctx.closePath();
                 ctx.fill();
+
+                // Draw main tapered organic body profile using bone nodes
+                ctx.fillStyle = currentColors.fishColor;
+                for (let i = 0; i < this.bodyLength; i++) {
+                    const segment = this.history[i];
+                    // Dynamic thickness rendering (tapering down towards tail)
+                    const radius = (this.bodyLength - i) * 1.1 * this.sizeScale;
+                    
+                    ctx.beginPath();
+                    ctx.arc(segment.x, segment.y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
 
                 ctx.restore();
             }
         }
 
-        const school = Array.from({ length: 70 }, () => new Fish());
+        const school = Array.from({ length: 45 }, () => new TopDownFish());
 
-        // --- CORE RENDER CANVAS ENGINE LOOP ---
         function mainLoop() {
-            // Draw Dynamic Water Depth Gradient
             const activeBg = THEMES[currentTheme].bg;
-            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
             gradient.addColorStop(0, activeBg[0]);
             gradient.addColorStop(1, activeBg[1]);
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, width, height);
 
-            // Update & Render Expanding Visual Ripples
+            // Update & Render Water Surface Ripple Lines
             for (let i = ripples.length - 1; i >= 0; i--) {
                 let r = ripples[i];
                 r.radius += r.speed;
-                r.alpha -= r.speed / r.maxRadius; // Fades smoothly to zero opacity exactly as it peaks size
+                r.alpha -= r.speed / r.maxRadius;
 
                 if (r.alpha <= 0) {
                     ripples.splice(i, 1);
@@ -360,44 +373,25 @@
                 }
 
                 ctx.strokeStyle = `rgba(255, 255, 255, ${r.alpha})`;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
-            // Manage, Update & Render Interactive Foods
+            // Render Floating Food Flakes
             ctx.fillStyle = '#ffb703';
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 6;
             ctx.shadowColor = '#ffb703';
             for (let i = foods.length - 1; i >= 0; i--) {
                 let f = foods[i];
-                f.y += f.speed;
                 ctx.beginPath();
                 ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
                 ctx.fill();
-
-                if (f.y > height + 10) foods.splice(i, 1);
             }
             ctx.shadowBlur = 0;
 
-            // Draw Background Aquarium Bubbles
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-            bubbles.forEach(b => {
-                b.y -= b.speed;
-                b.x += Math.sin(b.wobble) * 0.35;
-                b.wobble += b.wobbleSpeed;
-
-                if (b.y < -10) {
-                    b.y = height + 10;
-                    b.x = Math.random() * width;
-                }
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Update & Render Flocking Boid Elements
+            // Compute Fish Updates & Spine Mechanics
             school.forEach(fish => {
                 fish.flock(school);
                 fish.update();
@@ -407,7 +401,6 @@
             requestAnimationFrame(mainLoop);
         }
 
-        // Initialize Application Hooks
         setInterval(updateEcosystemTime, 1000);
         updateEcosystemTime();
         mainLoop();
