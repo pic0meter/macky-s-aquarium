@@ -106,21 +106,73 @@
 
         // Interactive states
         const foods = [];
+        const ripples = [];
         let currentTheme = 'afternoon';
+        
+        // Lazy-initialized Web Audio Context (Browsers require user gesture before playing audio)
+        let audioCtx = null;
 
         window.addEventListener('resize', () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         });
 
-        // Drop food coordinate objects on click
+        // Synthesize an underwater bubble "plop" audio wave purely via code
+        function playBubbleSound() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                // Resume context if suspended by browser auto-play policies
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                // Quick frequency pitch slide upward to emulate a rising bubble
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.12);
+
+                // Smooth exponential volume decay
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.log("Audio play blocked or unsupported:", e);
+            }
+        }
+
+        // Handle user clicks to trigger elements
         window.addEventListener('click', (e) => {
+            // Drop Food
             foods.push({
                 x: e.clientX,
                 y: e.clientY,
                 radius: 4,
                 speed: 1.2
             });
+
+            // Trigger Visual Ripple Configuration
+            ripples.push({
+                x: e.clientX,
+                y: e.clientY,
+                radius: 2,
+                maxRadius: 60,
+                alpha: 0.6,
+                speed: 2.5
+            });
+
+            // Play procedural audio
+            playBubbleSound();
         });
 
         // --- TIME CYCLES MANAGEMENT ---
@@ -194,7 +246,6 @@
                 let sepX = 0, sepY = 0, aliX = 0, aliY = 0, cohX = 0, cohY = 0;
                 let neighbors = 0;
 
-                // 1. Core Boids Rules Analysis Loop
                 for (let other of school) {
                     if (other === this) continue;
                     const dX = other.x - this.x;
@@ -224,7 +275,6 @@
                     this.vy += separationForce.y * 1.4 + alignmentForce.y * 1.0 + cohesionForce.y * 1.0;
                 }
 
-                // 2. Interactive Food Foraging Behavior Override
                 if (foods.length > 0) {
                     let closestFood = null;
                     let closestDist = Infinity;
@@ -244,7 +294,6 @@
                         this.vx += foodSeek.x * 1.8;
                         this.vy += foodSeek.y * 1.8;
 
-                        // Eat food condition
                         if (closestDist < 12) {
                             const index = foods.indexOf(closestFood);
                             if (index > -1) foods.splice(index, 1);
@@ -275,7 +324,6 @@
                 ctx.shadowBlur = currentTheme === 'night' ? 12 : 0;
                 ctx.shadowColor = THEMES[currentTheme].fishColor;
 
-                // Minimalist geometric organic fish profile
                 ctx.beginPath();
                 ctx.moveTo(14, 0);       
                 ctx.lineTo(-10, -5);     
@@ -288,7 +336,6 @@
             }
         }
 
-        // Instantiation loops
         const school = Array.from({ length: 70 }, () => new Fish());
 
         // --- CORE RENDER CANVAS ENGINE LOOP ---
@@ -301,6 +348,24 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, width, height);
 
+            // Update & Render Expanding Visual Ripples
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                let r = ripples[i];
+                r.radius += r.speed;
+                r.alpha -= r.speed / r.maxRadius; // Fades smoothly to zero opacity exactly as it peaks size
+
+                if (r.alpha <= 0) {
+                    ripples.splice(i, 1);
+                    continue;
+                }
+
+                ctx.strokeStyle = `rgba(255, 255, 255, ${r.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
             // Manage, Update & Render Interactive Foods
             ctx.fillStyle = '#ffb703';
             ctx.shadowBlur = 8;
@@ -312,10 +377,9 @@
                 ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Clean up missed food settling out of frame boundary
                 if (f.y > height + 10) foods.splice(i, 1);
             }
-            ctx.shadowBlur = 0; // Reset canvas shadow context map
+            ctx.shadowBlur = 0;
 
             // Draw Background Aquarium Bubbles
             ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
