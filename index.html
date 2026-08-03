@@ -85,15 +85,15 @@
         
         .specimen-viewport {
             width: 100%;
-            height: 160px;
+            height: 180px;
             background: radial-gradient(circle at center, #061528 0%, #01040a 100%);
-            border: 1px solid rgba(0, 229, 255, 0.2);
+            border: 1px solid rgba(0, 229, 255, 0.25);
             border-radius: 10px;
             margin-bottom: 15px;
             position: relative;
             overflow: hidden;
         }
-        .specimen-viewport canvas { width: 100%; height: 100%; }
+        .specimen-viewport canvas { width: 100%; height: 100%; display: block; }
 
         .gene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; font-family: monospace; font-size: 0.8rem; }
         .gene-card { background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04); }
@@ -201,7 +201,7 @@
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
         specCanvas.width = 430;
-        specCanvas.height = 160;
+        specCanvas.height = 180;
 
         const school = [];
         const foods = [];
@@ -520,7 +520,6 @@
                     customCtx.fill();
                 }
 
-                // Photorealistic Iridescent Guanine Micro-Crystals Layer
                 customCtx.fillStyle = "rgba(255, 255, 255, 0.12)";
                 for(let k=0; k<25; k++) {
                     let hNode = this.history[Math.min(k*2, this.history.length-1)];
@@ -568,7 +567,6 @@
                 this.applySophisticatedTexture(customCtx, false);
                 customCtx.restore();
 
-                // Advanced branching fin rays with dual-weight strokes
                 customCtx.save();
                 for (let r = 0; r <= rays; r++) {
                     let rayGrad = customCtx.createLinearGradient(structuralNodes[r].bx, structuralNodes[r].by, structuralNodes[r].ex, structuralNodes[r].ey);
@@ -622,11 +620,9 @@
                     targetCtx.setLineDash([]);
                 }
 
-                // 1. Dorsal and Ventral Fin Assemblies
                 this.drawSophisticatedFinMesh(targetCtx, 6, 18, 1.0, 1.15, 1, isPreview);
                 this.drawSophisticatedFinMesh(targetCtx, 3, 18, 0.9, 1.05, -1, isPreview);
 
-                // 2. Caudal Fin Assembly
                 targetCtx.save();
                 targetCtx.beginPath();
                 let cRays = 24;
@@ -685,7 +681,6 @@
                 targetCtx.stroke();
                 targetCtx.restore();
 
-                // 3. Sophisticated Muscular Torso Contour
                 targetCtx.save();
                 targetCtx.beginPath();
                 for (let i = 0; i < this.bodySegments; i++) {
@@ -698,7 +693,6 @@
                 this.applySophisticatedTexture(targetCtx, true);
                 targetCtx.restore();
 
-                // 4. Photorealistic Head & Eye Details
                 const headNode = this.history[0];
                 
                 targetCtx.strokeStyle = "rgba(0, 0, 0, 0.45)";
@@ -734,9 +728,8 @@
         function engineLoop() {
             if (discoveryWindow.classList.contains('show')) {
                 specCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
-                // Render stationary specimen inside modal preview window
                 if (latestFry) {
-                    latestFry.x = specCanvas.width / 2;
+                    latestFry.x = specCanvas.width / 2 + 15;
                     latestFry.y = specCanvas.height / 2;
                     latestFry.facingRight = true;
                     latestFry.swimCycle += 0.04;
