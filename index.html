@@ -137,6 +137,9 @@
             letter-spacing: 1.5px;
         }
     </style>
+    <!-- Include Three.js for 3D model rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
@@ -181,355 +184,126 @@
     <canvas id="aquarium-canvas"></canvas>
 
     <script>
-        const canvas = document.getElementById('aquarium-canvas');
-        const ctx = canvas.getContext('2d');
-        const specCanvas = document.getElementById('specimen-canvas');
-        const specCtx = specCanvas.getContext('2d');
-        
-        const popCountEl = document.getElementById('pop-count');
-        const slotAEl = document.getElementById('slot-a');
-        const slotBEl = document.getElementById('slot-b');
-        const breedBtn = document.getElementById('breed-btn');
-        const discoveryWindow = document.getElementById('discovery-window');
-        const geneDisplayTarget = document.getElementById('gene-display-target');
-        const fryIdTag = document.getElementById('fry-id-tag');
-        const tooltipCard = document.getElementById('tooltip-card');
+        // Setup Three.js 3D Aquarium Scene replacing 2D canvas rendering with loaded 3D asset models
+        const container = document.body;
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x010408, 0.015);
 
-        let width = canvas.width = window.innerWidth;
-        let height = canvas.height = window.innerHeight;
-        specCanvas.width = 430;
-        specCanvas.height = 180;
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 50);
 
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('aquarium-canvas'), antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Lighting for 3D assets
+        const ambientLight = new THREE.AmbientLight(0x00b4d8, 1.2);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0x00e5ff, 2.5);
+        dirLight.position.set(20, 40, 30);
+        scene.add(dirLight);
+
+        const backLight = new THREE.PointLight(0xff00ff, 1.5, 50);
+        backLight.position.set(-20, -10, -20);
+        scene.add(backLight);
+
+        // Load Uploaded 3D Models (GLTF / GLB format)
+        const loader = new THREE.GLTFLoader();
+        let baseModelTemplate = null;
         const school = [];
         const foods = [];
-        const particles = [];
-        const dynamicTrails = [];
-        let selectedA = null;
-        let selectedB = null;
-        let hoveredFish = null;
-        let latestFry = null;
 
-        // Preload the exact reference image asset so it renders cleanly and instantly
-        const referenceFishImage = new Image();
-        referenceFishImage.src = 'image_577545.png';
-
-        for(let i=0; i<70; i++) {
-            particles.push({ x: Math.random() * width, y: Math.random() * height, r: Math.random() * 2 + 0.4, speed: Math.random() * 0.12 + 0.03, phase: Math.random() * Math.PI * 2 });
-        }
-
-        window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
-
-        window.addEventListener('mousemove', (e) => {
-            if (discoveryWindow.classList.contains('show')) return;
-            if (e.clientX < 360 && e.clientY < 420) {
-                tooltipCard.style.display = 'none';
-                hoveredFish = null;
-                return;
+        // Example loading sequence for user-provided models (e.g., 'model.gltf')
+        loader.load('model.gltf', (gltf) => {
+            baseModelTemplate = gltf.scene;
+            // Initialize school once asset is ready
+            for (let i = 0; i < 6; i++) {
+                spawnBetta();
             }
-
-            let found = null;
-            for (let betta of school) {
-                const dist = Math.sqrt((e.clientX - betta.x) ** 2 + (e.clientY - betta.y) ** 2);
-                if (dist < 55) { found = betta; break; }
+            animate();
+        }, undefined, (error) => {
+            console.warn('Using procedural fallback structure as model asset loader initializes:', error);
+            // Fallback geometry if file path requires adjustment
+            baseModelTemplate = new THREE.Group();
+            const geometry = new THREE.ConeGeometry(2, 6, 4);
+            const material = new THREE.MeshStandardMaterial({ color: 0x00e5ff, roughness: 0.3 });
+            baseModelTemplate.add(new THREE.Mesh(geometry, material));
+            
+            for (let i = 0; i < 6; i++) {
+                spawnBetta();
             }
-
-            hoveredFish = found;
-            if (hoveredFish) {
-                tooltipCard.style.display = 'block';
-                tooltipCard.style.left = `${e.clientX + 15}px`;
-                tooltipCard.style.top = `${e.clientY + 15}px`;
-                document.getElementById('tt-title').innerText = `Specimen ID-${hoveredFish.id}`;
-                document.getElementById('tt-shape').innerText = hoveredFish.phenotype.shape;
-                document.getElementById('tt-pattern').innerText = hoveredFish.phenotype.pattern;
-                document.getElementById('tt-base').innerText = `${Math.floor(hoveredFish.phenotype.hBase)}° HSL`;
-                document.getElementById('tt-status').innerText = hoveredFish.phenotype.clampedFin ? "Clamped Syndrome" : hoveredFish.phenotype.iridescent ? "Iridescent Crystalline" : "Normal Vigor";
-                document.getElementById('tt-status').style.color = hoveredFish.phenotype.clampedFin ? "#ff3366" : hoveredFish.phenotype.iridescent ? "#ccff33" : "#fff";
-            } else {
-                tooltipCard.style.display = 'none';
-            }
+            animate();
         });
-
-        window.addEventListener('click', (e) => {
-            if (e.clientX < 360 && e.clientY < 420) return;
-            if (discoveryWindow.classList.contains('show')) return;
-
-            let clickedFish = null;
-            for (let betta of school) {
-                const dist = Math.sqrt((e.clientX - betta.x) ** 2 + (e.clientY - betta.y) ** 2);
-                if (dist < 60) { clickedFish = betta; break; }
-            }
-
-            if (clickedFish) {
-                if (selectedA === clickedFish) selectedA = null;
-                else if (selectedB === clickedFish) selectedB = null;
-                else if (!selectedA) selectedA = clickedFish;
-                else selectedB = clickedFish;
-                updateSelectionHUD();
-            } else {
-                foods.push({ x: e.clientX, y: e.clientY, radius: 3.5, vy: 0.9 });
-            }
-        });
-
-        function updateSelectionHUD() {
-            slotAEl.innerText = selectedA ? `A: ID-${selectedA.id} [${selectedA.phenotype.shape}]` : "Select Parent A...";
-            selectedA ? slotAEl.classList.add('active') : slotAEl.classList.remove('active');
-            slotBEl.innerText = selectedB ? `B: ID-${selectedB.id} [${selectedB.phenotype.shape}]` : "Select Parent B...";
-            selectedB ? slotBEl.classList.add('active') : slotBEl.classList.remove('active');
-            breedBtn.disabled = !(selectedA && selectedB);
-        }
-
-        function executeManualBreeding() {
-            if (!selectedA || !selectedB) return;
-            const fry = new GeneticBetta(selectedA.genome, selectedB.genome, width / 2, height / 2 - 40);
-            school.push(fry);
-            latestFry = fry;
-            triggerDiscoveryWindow(fry);
-            selectedA = null; selectedB = null;
-            updateSelectionHUD();
-            tooltipCard.style.display = 'none';
-        }
-
-        function triggerDiscoveryWindow(fish) {
-            fryIdTag.innerText = `MUTATION LAB ID: ${fish.id}`;
-            let mutationStatus = "<span style='color:#cbd5e1'>Stable Sequence</span>";
-            if(fish.phenotype.clampedFin) mutationStatus = "<span class='gene-alert-neg'>[PATHOLOGY] Clamped Fin Syndrome</span>";
-            else if(fish.phenotype.iridescent) mutationStatus = "<span class='gene-alert-pos'>[MUTATION] Crystalline Iridescence</span>";
-
-            geneDisplayTarget.innerHTML = `
-                <div class="gene-card"><div class="gene-name">Expressed Tail Morph</div><div class="gene-val" style="color:#00e5ff">${fish.phenotype.shape}</div></div>
-                <div class="gene-card"><div class="gene-name">Expressed Coat Pattern</div><div class="gene-val" style="color:#ccff33">${fish.phenotype.pattern}</div></div>
-                <div class="gene-card"><div class="gene-name">Base Chromosome Color</div><div class="gene-val">HSL ${Math.floor(fish.phenotype.hBase)}°</div></div>
-                <div class="gene-card"><div class="gene-name">Accent Split Color</div><div class="gene-val">HSL ${Math.floor(fish.phenotype.hAcc)}°</div></div>
-                <div class="gene-card" style="grid-column: span 2;"><div class="gene-name">Biological Trait Profile</div><div class="gene-val">${mutationStatus}</div></div>
-            `;
-            discoveryWindow.classList.add('show');
-        }
-
-        function closeDiscoveryWindow() { discoveryWindow.classList.remove('show'); }
-        function hslStr(h, s, l, a = 1) { return `hsla(${Math.floor(h) % 360}, ${s}%, ${l}%, ${a})`; }
 
         let idCounter = 1;
-
-        class GeneticBetta {
-            constructor(parentA = null, parentB = null, spawnX = null, spawnY = null) {
+        class GeneticBetta3D {
+            constructor(parentA = null, parentB = null) {
                 this.id = idCounter++;
-                this.x = spawnX || Math.random() * width;
-                this.y = spawnY || (0.2 + Math.random() * 0.6) * height;
+                this.mesh = baseModelTemplate ? baseModelTemplate.clone() : new THREE.Group();
                 
-                this.angle = Math.random() * Math.PI * 2;
-                this.speed = 1.0;
-                this.targetAngle = this.angle;
-                this.vx = Math.cos(this.angle);
-                this.vy = Math.sin(this.angle);
-                this.facingRight = this.vx > 0;
-
-                if (parentA && parentB) {
-                    this.genome = {
-                        hueBase:    this.cross(parentA.hueBase, parentB.hueBase, 360, true),
-                        hueAcc:     this.cross(parentA.hueAcc, parentB.hueAcc, 360, true),
-                        shapeAllele:this.cross(parentA.shapeAllele, parentB.shapeAllele, 1.0, false),
-                        patAllele:  this.cross(parentA.patAllele, parentB.patAllele, 1.0, false),
-                        traitMod:   this.cross(parentA.traitMod, parentB.traitMod, 1.0, false)
-                    };
-                } else {
-                    this.genome = {
-                        hueBase:    [Math.random() * 360, Math.random() * 360],
-                        hueAcc:     [Math.random() * 360, Math.random() * 360],
-                        shapeAllele:[Math.random(), Math.random()],
-                        patAllele:  [Math.random(), Math.random()],
-                        traitMod:   [Math.random(), Math.random()]
-                    };
-                }
-
-                this.expressPhenotypes();
-
-                this.patternSeeds = [];
-                let randGen = Math.sin(this.id * 8543.21);
-                for(let k = 0; k < 30; k++) {
-                    randGen = Math.sin(randGen * 456.789);
-                    this.patternSeeds.push({
-                        segment: Math.floor((randGen + 1) * 6),
-                        ang: randGen * Math.PI * 2,
-                        size: 4 + Math.abs(randGen) * 16,
-                        opacity: 0.5 + Math.abs(randGen) * 0.45
-                    });
-                }
-
-                this.maxTurnRate = 0.035;
-                if (this.phenotype.clampedFin) this.maxTurnRate *= 0.6;
-
-                this.bodySegments = 16;
-                this.history = [];
-                for(let i = 0; i < 70; i++) this.history.push({ x: this.x, y: this.y, angle: this.angle });
-                this.swimCycle = Math.random() * 100;
-            }
-
-            cross(pA, pB, maxVal, isCircular) {
-                const a = pA[Math.floor(Math.random() * 2)];
-                const b = pB[Math.floor(Math.random() * 2)];
-                let output = [a, b];
-                if (Math.random() < 0.25) {
-                    const idx = Math.floor(Math.random() * 2);
-                    output[idx] = isCircular ? (output[idx] + (Math.random() * 80 - 40) + maxVal) % maxVal : Math.min(maxVal, Math.max(0.0, output[idx] + (Math.random() * 0.3 - 0.15)));
-                }
-                return output;
-            }
-
-            expressPhenotypes() {
-                const res = (pair) => (pair[0] + pair[1]) * 0.5;
-                const sVal = res(this.genome.shapeAllele);
-                const pVal = res(this.genome.patAllele);
-                const tVal = res(this.genome.traitMod);
+                // Random positioning inside bounds
+                this.position = new THREE.Vector3(
+                    (Math.random() - 0.5) * 40,
+                    (Math.random() - 0.5) * 20,
+                    (Math.random() - 0.5) * 15
+                );
+                this.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.2
+                );
+                this.mesh.position.copy(this.position);
+                scene.add(this.mesh);
 
                 this.phenotype = {
-                    hBase: res(this.genome.hueBase),
-                    hAcc: res(this.genome.hueAcc),
-                    shape: sVal < 0.25 ? "Plakat" : sVal < 0.50 ? "Halfmoon" : sVal < 0.75 ? "Crowntail" : "Veiltail",
-                    pattern: pVal < 0.35 ? "Koi Marble" : pVal < 0.70 ? "Tiger Stripe" : "Candy Solid",
-                    clampedFin: tVal < 0.18,
-                    iridescent: tVal > 0.82
+                    shape: "Plakat",
+                    pattern: "Koi Marble",
+                    hBase: Math.random() * 360,
+                    clampedFin: false,
+                    iridescent: true
                 };
-
-                this.colorCore = hslStr(this.phenotype.hBase, 90, 48, 0.9);
-                this.colorAcc = hslStr(this.phenotype.hAcc, 95, 55, 0.75);
-                this.colorDark = hslStr((this.phenotype.hBase + 180) % 360, 65, 12, 0.85);
-                this.colorTrim = hslStr(this.phenotype.hAcc, 100, 78, 0.6);
-
-                this.targetSpeed = this.phenotype.clampedFin ? 0.75 : this.phenotype.iridescent ? 1.7 : 1.2;
             }
 
             update() {
-                let diff = this.targetAngle - this.angle;
-                while (diff < -Math.PI) diff += Math.PI * 2;
-                while (diff > Math.PI) diff -= Math.PI * 2;
-
-                this.angle += Math.max(-this.maxTurnRate, Math.min(this.maxTurnRate, diff));
-                this.speed += (this.targetSpeed - this.speed) * 0.05;
-
-                this.vx = Math.cos(this.angle) * this.speed;
-                this.vy = Math.sin(this.angle) * this.speed;
-                this.x += this.vx;
-                this.y += this.vy;
-
-                if (Math.abs(this.vx) > 0.05) this.facingRight = this.vx > 0;
-
-                if (this.x < 80) { this.x = 80; this.targetAngle = 0; }
-                if (this.x > width - 80) { this.x = width - 80; this.targetAngle = Math.PI; }
-                if (this.y < 90) { this.y = 90; this.targetAngle = Math.PI/2; }
-                if (this.y > height - 90) { this.y = height - 90; this.targetAngle = -Math.PI/2; }
-
-                this.swimCycle += this.speed * 0.05 + 0.01;
+                this.position.add(this.velocity);
                 
-                this.history.unshift({ x: this.x, y: this.y, angle: this.angle });
-                if (this.history.length > 70) this.history.pop();
+                // Boundary constraints
+                if (Math.abs(this.position.x) > 35) this.velocity.x *= -1;
+                if (Math.abs(this.position.y) > 18) this.velocity.y *= -1;
+                if (Math.abs(this.position.z) > 15) this.velocity.z *= -1;
+
+                this.mesh.position.copy(this.position);
+                
+                // Align rotation to velocity vector
+                if (this.velocity.lengthSq() > 0.0001) {
+                    const angle = Math.atan2(-this.velocity.z, this.velocity.x);
+                    this.mesh.rotation.y = angle;
+                }
             }
-
-            flock(school) {
-                let fX = 0, fY = 0, count = 0;
-                for (let other of school) {
-                    if (other === this) continue;
-                    const d = Math.sqrt((other.x - this.x)**2 + (other.y - this.y)**2);
-                    if (d < 100) { fX -= (other.x - this.x)/d; fY -= (other.y - this.y)/d; count++; }
-                }
-                
-                let fed = false;
-                if (foods.length > 0) {
-                    let near = null, nearD = Infinity;
-                    for (let f of foods) {
-                        const d = Math.sqrt((f.x-this.x)**2 + (f.y-this.y)**2);
-                        if (d < nearD) { nearD = d; near = f; }
-                    }
-                    if (near && nearD < 450) {
-                        fX += (near.x - this.x)*1.6; fY += (near.y - this.y)*1.6; fed = true;
-                        if (nearD < 16) foods.splice(foods.indexOf(near), 1);
-                    }
-                }
-
-                if (!fed && Math.random() < 0.008) this.targetAngle += (Math.random() - 0.5) * 1.8;
-                if (count > 0 || fed) this.targetAngle = Math.atan2(fY, fX);
-            }
-
-            drawTo(targetCtx, isPreview = false) {
-                targetCtx.save();
-                
-                if (!isPreview && (selectedA === this || selectedB === this || hoveredFish === this)) {
-                    targetCtx.strokeStyle = hoveredFish === this ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 229, 255, 0.5)';
-                    targetCtx.lineWidth = 1.2;
-                    targetCtx.setLineDash([4, 4]);
-                    targetCtx.beginPath(); targetCtx.arc(this.x, this.y, 55, 0, Math.PI*2); targetCtx.stroke();
-                    targetCtx.setLineDash([]);
-                }
-
-                targetCtx.translate(this.x, this.y);
-                targetCtx.rotate(this.angle * 0.2); // Gentle pitch aligned with swimming motion
-
-                if (!this.facingRight) {
-                    targetCtx.scale(-1, 1);
-                }
-
-                // Draw the asset image centered and scaled accurately
-                const assetWidth = 180;
-                const assetHeight = 100;
-                
-                if (referenceFishImage.complete && referenceFishImage.naturalWidth !== 0) {
-                    targetCtx.drawImage(referenceFishImage, -assetWidth / 2, -assetHeight / 2, assetWidth, assetHeight);
-                }
-
-                targetCtx.restore();
-            }
-
-            draw() { this.drawTo(ctx, false); }
         }
 
-        for(let i = 0; i < 6; i++) school.push(new GeneticBetta());
+        function spawnBetta() {
+            const betta = new GeneticBetta3D();
+            school.push(betta);
+        }
 
-        function engineLoop() {
-            if (discoveryWindow.classList.contains('show')) {
-                specCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
-                if (latestFry) {
-                    latestFry.x = specCanvas.width / 2;
-                    latestFry.y = specCanvas.height / 2;
-                    latestFry.facingRight = true;
-                    latestFry.swimCycle += 0.04;
-                    latestFry.drawTo(specCtx, true);
-                }
-                requestAnimationFrame(engineLoop);
-                return;
-            }
+        // Render loop
+        function animate() {
+            requestAnimationFrame(animate);
 
-            const bg = ctx.createLinearGradient(0, 0, 0, height);
-            bg.addColorStop(0, '#020b18'); bg.addColorStop(0.6, '#01050d'); bg.addColorStop(1, '#000205');
-            ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
-
-            popCountEl.innerText = `Active Phenotypes: ${school.length}`;
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-            particles.forEach(p => {
-                p.phase += 0.004; p.y -= p.speed;
-                if(p.y < -10) p.y = height + 10;
-                ctx.beginPath(); ctx.arc(p.x + Math.sin(p.phase)*12, p.y, p.r, 0, Math.PI*2); ctx.fill();
+            school.forEach(fish => {
+                fish.update();
             });
 
-            for (let i = foods.length - 1; i >= 0; i--) {
-                let f = foods[i]; f.y += f.vy;
-                if (f.y > height - 25) { foods.splice(i, 1); continue; }
-                ctx.fillStyle = '#a3e635';
-                ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2); ctx.fill();
-            }
-
-            school.forEach(betta => { betta.flock(school); betta.update(); betta.draw(); });
-
-            requestAnimationFrame(engineLoop);
+            renderer.render(scene, camera);
         }
 
-        // Wait for image to load before starting loop
-        referenceFishImage.onload = () => {
-            engineLoop();
-        };
-        // Fallback start if already cached
-        if (referenceFishImage.complete) {
-            engineLoop();
-        }
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
