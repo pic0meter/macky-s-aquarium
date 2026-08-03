@@ -146,10 +146,8 @@
         }
 
         window.addEventListener('click', (e) => {
-            // Prevent dropping food if clicking the HUD panel elements
             if (e.clientX < 310 && e.clientY < 300) return;
 
-            // Check if user clicked on a fish vector target boundary
             let clickedFish = null;
             for (let betta of school) {
                 const dist = Math.sqrt((e.clientX - betta.x) ** 2 + (e.clientY - betta.y) ** 2);
@@ -201,14 +199,11 @@
             if (!selectedA || !selectedB) return;
             
             const breederName = breederInput.value.trim() || "Unknown Breeder";
-            
-            // Execute polygenic cross recombination layout routines
             const fry = new AquariumBetta(selectedA.genome, selectedB.genome, selectedA.x, selectedA.y, breederName);
             school.push(fry);
             
             playTone(440, 0.3, 'triangle');
             
-            // Clear choices
             selectedA = null;
             selectedB = null;
             updateSelectionHUD();
@@ -227,14 +222,12 @@
                 this.x = spawnX || Math.random() * width;
                 this.y = spawnY || (0.2 + Math.random() * 0.6) * height;
                 
-                // Horizontal tracking vectors for Side-View Aquarium framework
                 this.vx = (Math.random() - 0.5) * 1.5;
                 this.vy = (Math.random() - 0.5) * 0.4;
                 this.maxForce = 0.02;
                 this.perceptionRadius = 130;
                 this.facingRight = this.vx > 0;
 
-                // --- POLYGENIC CONTINUOUS DYNAMICS CHROMOSOMES ---
                 if (parentA && parentB) {
                     this.genome = {
                         hueBase:    this.cross(parentA.hueBase, parentB.hueBase, 360, true),
@@ -255,7 +248,6 @@
 
                 this.expressPhenotypes();
 
-                // Kinematic Log Array configured for horizontal current tail lag drag
                 this.bodyLength = 10;
                 this.history = [];
                 for(let i = 0; i < 30; i++) {
@@ -268,7 +260,7 @@
                 const a = pairA[Math.floor(Math.random() * 2)];
                 const b = pairB[Math.floor(Math.random() * 2)];
                 let out = [a, b];
-                if (Math.random() < 0.05) { // 5% Mutation factor layer
+                if (Math.random() < 0.05) {
                     const idx = Math.floor(Math.random() * 2);
                     out[idx] = circular ? (out[idx] + (Math.random() * 100 - 50) + 360) % range : Math.min(range, Math.max(0.1, out[idx] + (Math.random() * 0.3 - 0.15)));
                 }
@@ -286,7 +278,7 @@
                 };
 
                 this.colorCore = hslStr(this.phenotype.hBase, 85, 45, 1);
-                this.colorFinInner = hslStr(this.phenotype.hBase, 90, 40, 0.35);
+                this.colorFinInner = hslStr(this.phenotype.hBase, 90, 40, 0.4);
                 this.colorFinOuter = hslStr(this.phenotype.hAcc, 95, 52, 0.25);
                 this.colorGlint = hslStr(this.phenotype.hAcc, 100, 75, this.phenotype.metal * 0.7);
                 
@@ -299,7 +291,6 @@
 
                 if (Math.abs(this.vx) > 0.1) this.facingRight = this.vx > 0;
 
-                // Simple Aquarium wall bounds bouncing parameters
                 if (this.x < 40) { this.x = 40; this.vx *= -1; }
                 if (this.x > width - 40) { this.x = width - 40; this.vx *= -1; }
                 if (this.y < 50) { this.y = 50; this.vy *= -1; }
@@ -308,7 +299,6 @@
                 const speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
                 this.swimCycle += speed * 0.12 + 0.02;
 
-                // Inject forward positioning kinematics while keeping vertical history data vectors intact
                 this.history.unshift({ x: this.x, y: this.y, vy: this.vy });
                 if (this.history.length > 35) this.history.pop();
             }
@@ -332,7 +322,6 @@
                     this.vx += sF.x; this.vy += sF.y;
                 }
 
-                // Aquarium Food Targeting tracking logic
                 if (foods.length > 0) {
                     let closest = null; let closestDist = Infinity;
                     for (let food of foods) {
@@ -349,7 +338,6 @@
                     }
                 }
 
-                // Random idle cruising wander vectors
                 if (Math.random() < 0.02) {
                     this.vx += (Math.random() - 0.5) * 0.4;
                     this.vy += (Math.random() - 0.5) * 0.15;
@@ -370,24 +358,17 @@
                 ctx.save();
                 
                 const getSeg = (idx) => this.history[Math.min(idx, this.history.length - 1)];
-                
-                const bodyLengthFactor = this.phenotype.fSize;
-                const tailLength = 40 * bodyLengthFactor;
-
-                // Determine directional orientation modifiers
+                const sizeFactor = this.phenotype.fSize;
+                const tailLength = 45 * sizeFactor;
                 const dir = this.facingRight ? -1 : 1; 
+                const verticalLag = Math.sin(this.swimCycle) * 6 * sizeFactor;
 
-                // Dynamic vertical fluid displacement calculations mapping fin lag vectors
-                const verticalLag = Math.sin(this.swimCycle) * 6 * bodyLengthFactor;
-
-                // Setup translucent watercolor gradient assets
                 const finGrad = ctx.createLinearGradient(this.x, this.y, this.x + (tailLength * dir), this.y + verticalLag);
                 finGrad.addColorStop(0, this.colorFinInner);
                 finGrad.addColorStop(0.6, this.colorFinOuter);
                 finGrad.addColorStop(1, 'rgba(0,0,0,0)');
                 ctx.fillStyle = finGrad;
 
-                // Draw Selection Highlight Rings
                 if (selectedA === this || selectedB === this) {
                     ctx.strokeStyle = '#ccff33';
                     ctx.lineWidth = 1;
@@ -397,30 +378,29 @@
                     ctx.fillText(selectedA === this ? 'Parent A' : 'Parent B', this.x - 22, this.y - 32);
                 }
 
-                // 1. ANTERIOR DORSAL VEIL (Draped Side-View Crest)
+                // 1. ANTERIOR DORSAL VEIL (Side-View Crest)
                 ctx.beginPath();
                 ctx.moveTo(this.x - (4 * dir), this.y - 4);
                 ctx.bezierCurveTo(
-                    this.x + (15 * dir), this.y - (25 * finGrad.scale || 25),
-                    this.x + (35 * dir), this.y - (30 * finScaleFactor) + verticalLag,
-                    this.x + (25 * dir), this.y
+                    this.x + (15 * dir), this.y - (20 * sizeFactor),
+                    this.x + (35 * dir), this.y - (25 * sizeFactor) + verticalLag,
+                    this.x + (20 * dir), this.y
                 );
                 ctx.closePath(); ctx.fill();
 
-                // 2. VENTRAL FLUID BANNER FIN (Lower hanging curtain)
+                // 2. VENTRAL BANNER FIN (Lower hanging curtain)
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y + 3);
                 ctx.bezierCurveTo(
-                    this.x + (10 * dir), this.y + 25,
-                    this.x + (40 * dir), this.y + (28 * finScaleFactor) + verticalLag,
-                    this.x + (30 * dir), this.y + 5
+                    this.x + (10 * dir), this.y + (20 * sizeFactor),
+                    this.x + (35 * dir), this.y + (22 * sizeFactor) + verticalLag,
+                    this.x + (25 * dir), this.y + 4
                 );
                 ctx.closePath(); ctx.fill();
 
-                // 3. MAIN CAUDAL TAIL DRAG VEIL (Graceful banner flow physics)
+                // 3. MAIN CAUDAL TAIL DRAG VEIL (Graceful flow physics)
                 ctx.beginPath();
                 ctx.moveTo(this.x + (12 * dir), this.y);
-                
                 const spreadY = 22 * this.phenotype.spread;
                 ctx.bezierCurveTo(
                     this.x + (30 * dir), this.y - spreadY + (verticalLag * 0.5),
@@ -434,7 +414,7 @@
                 );
                 ctx.closePath(); ctx.fill();
 
-                // 4. METALLIC GUANINE SCALING HIGHLIGHT SHADER MASK
+                // 4. METALLIC SHADER MASK
                 if (this.phenotype.metal > 0.35) {
                     ctx.fillStyle = this.colorGlint;
                     ctx.beginPath();
@@ -442,48 +422,45 @@
                     ctx.fill();
                 }
 
-                // 5. SOLID STRUCTURAL ANATOMY TAPER (Side-View Profile)
+                // 5. SOLID STRUCTURAL ANATOMY TAPER
                 ctx.fillStyle = this.colorCore;
                 for (let i = 0; i < this.bodyLength; i++) {
                     const seg = getSeg(i * 2);
                     const thickness = (this.bodyLength - i) * 0.9;
-                    // Taper down body horizontally following historical points
                     const drawX = this.x + (i * 2.2 * dir);
-                    const drawY = seg.y; // Follow historical depth coordinates
+                    const drawY = seg.y;
                     
                     ctx.beginPath();
                     ctx.arc(drawX, drawY, thickness, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
-                // Tiny pectoral fin side overlay
+                // Pectoral fin overlay
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.beginPath(); ctx.slice || ctx.ellipse(this.x - (2 * dir), this.y + 2, 4, 6, 0.3 * dir, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(this.x - (2 * dir), this.y + 2, 4, 6, 0.3 * dir, 0, Math.PI*2); ctx.fill();
 
-                // Ocular focus target element
+                // Ocular focus point
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath(); ctx.arc(this.x - (7 * dir), this.y - 1, 1, 0, Math.PI*2); ctx.fill();
                 
                 // Display breeder tag under fish profile
                 ctx.font = '8px monospace';
                 ctx.fillStyle = 'rgba(255,255,255,0.35)';
-                ctx.fillText(`ID:${this.id} By: ${this.breeder}`, this.x - 25, this.y + 16);
+                ctx.fillText(`ID:${this.id} By: ${this.breeder}`, this.x - 25, this.y + 18);
 
                 ctx.restore();
             }
         }
 
-        // Setup primary laboratory base stock population
+        // Setup primary stock population
         for(let i = 0; i < 10; i++) { school.push(new AquariumBetta()); }
 
         function engineLoop() {
-            // Aquarium dark depth background wash
             ctx.fillStyle = 'rgba(1, 10, 24, 0.25)';
             ctx.fillRect(0, 0, width, height);
 
             popCountEl.innerText = `Bettas Active: ${school.length}`;
 
-            // Process Food Physics (Gravity sink routine)
             for (let i = foods.length - 1; i >= 0; i--) {
                 let f = foods[i];
                 f.y += f.vy;
@@ -495,7 +472,6 @@
                 ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2); ctx.fill();
             }
 
-            // Update calculations for each entity
             school.forEach(betta => {
                 betta.flock(school);
                 betta.update();
@@ -505,7 +481,6 @@
             requestAnimationFrame(engineLoop);
         }
 
-        popCountEl.innerText = `Bettas Active: ${school.length}`;
         engineLoop();
     </script>
 </body>
