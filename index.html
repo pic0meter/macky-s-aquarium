@@ -103,7 +103,6 @@
         .gene-alert-pos { color: #ccff33; font-weight: bold; }
         .close-modal-btn { background: #00e5ff; color: #020b14; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
 
-        /* Floating Tooltip Detail Card on Hover */
         .tooltip-card {
             position: absolute;
             z-index: 50;
@@ -153,7 +152,6 @@
         </div>
     </div>
 
-    <!-- Discovery Modal with Rendered Specimen Window -->
     <div class="discovery-modal" id="discovery-window">
         <div class="modal-header">
             <span>🔬 Chromosome Phenotype Card</span>
@@ -168,7 +166,6 @@
         </div>
     </div>
 
-    <!-- Hover Detail Tooltip -->
     <div class="tooltip-card" id="tooltip-card">
         <div class="tooltip-title" id="tt-title">Specimen ID</div>
         <div class="tooltip-row"><span class="tooltip-label">Shape:</span><span class="tooltip-val" id="tt-shape">--</span></div>
@@ -211,6 +208,10 @@
         let selectedB = null;
         let hoveredFish = null;
         let latestFry = null;
+
+        // Preload the exact reference image asset so it renders cleanly and instantly
+        const referenceFishImage = new Image();
+        referenceFishImage.src = 'image_577545.png';
 
         for(let i=0; i<70; i++) {
             particles.push({ x: Math.random() * width, y: Math.random() * height, r: Math.random() * 2 + 0.4, speed: Math.random() * 0.12 + 0.03, phase: Math.random() * Math.PI * 2 });
@@ -421,14 +422,6 @@
                 
                 this.history.unshift({ x: this.x, y: this.y, angle: this.angle });
                 if (this.history.length > 70) this.history.pop();
-
-                if (this.phenotype.iridescent && Math.random() < 0.35) {
-                    dynamicTrails.push({
-                        x: this.history[12].x + (Math.random()-0.5)*8, y: this.history[12].y + (Math.random()-0.5)*8,
-                        r: Math.random() * 2 + 0.5, alpha: 0.85,
-                        color: this.colorTrim
-                    });
-                }
             }
 
             flock(school) {
@@ -456,266 +449,31 @@
                 if (count > 0 || fed) this.targetAngle = Math.atan2(fY, fX);
             }
 
-            applySophisticatedTexture(customCtx, isBody = false) {
-                let depthGrad = customCtx.createLinearGradient(this.history[14].x, this.history[14].y, this.history[0].x, this.history[0].y);
-                depthGrad.addColorStop(0, hslStr(this.phenotype.hBase, 85, 20, isBody ? 0.98 : 0.5));
-                depthGrad.addColorStop(0.4, this.colorCore);
-                depthGrad.addColorStop(1, hslStr(this.phenotype.hBase, 95, 65, isBody ? 0.98 : 0.7));
-                customCtx.fillStyle = depthGrad;
-                customCtx.fill();
-
-                customCtx.save();
-                customCtx.globalCompositeOperation = "source-atop";
-                
-                if (this.phenotype.pattern === "Koi Marble") {
-                    this.patternSeeds.forEach(s => {
-                        const n = this.history[Math.min(s.segment * 2, this.history.length-1)];
-                        let patchGrad = customCtx.createRadialGradient(n.x, n.y, 0, n.x, n.y, s.size);
-                        patchGrad.addColorStop(0, hslStr((this.phenotype.hBase + 170) % 360, 70, 10, s.opacity));
-                        patchGrad.addColorStop(0.75, hslStr((this.phenotype.hBase + 190) % 360, 60, 15, s.opacity * 0.6));
-                        patchGrad.addColorStop(1, "rgba(0,0,0,0)");
-                        
-                        customCtx.fillStyle = patchGrad;
-                        customCtx.beginPath(); customCtx.arc(n.x + Math.cos(s.ang)*4, n.y + Math.sin(s.ang)*4, s.size, 0, Math.PI*2); customCtx.fill();
-                    });
-                    
-                    this.patternSeeds.forEach((s, i) => {
-                        if (i % 2 === 0) {
-                            const n = this.history[Math.min((15 - s.segment) * 2, this.history.length-1)];
-                            let accentGrad = customCtx.createRadialGradient(n.x, n.y, 0, n.x, n.y, s.size * 0.75);
-                            accentGrad.addColorStop(0, hslStr(this.phenotype.hAcc, 95, 55, s.opacity));
-                            accentGrad.addColorStop(1, "rgba(0,0,0,0)");
-                            customCtx.fillStyle = accentGrad;
-                            customCtx.beginPath(); customCtx.arc(n.x, n.y, s.size * 0.75, 0, Math.PI*2); customCtx.fill();
-                        }
-                    });
-                } 
-                else if (this.phenotype.pattern === "Tiger Stripe") {
-                    for (let i = 2; i < this.bodySegments - 1; i += 2) {
-                        const n = this.history[i * 2];
-                        const normalAng = n.angle + Math.PI / 2;
-                        let stripeGrad = customCtx.createLinearGradient(
-                            n.x - Math.cos(normalAng)*18, n.y - Math.sin(normalAng)*18,
-                            n.x + Math.cos(normalAng)*18, n.y + Math.sin(normalAng)*18
-                        );
-                        stripeGrad.addColorStop(0, "rgba(0,0,0,0)");
-                        stripeGrad.addColorStop(0.3, hslStr((this.phenotype.hBase + 180) % 360, 80, 10, 0.9));
-                        stripeGrad.addColorStop(0.7, hslStr((this.phenotype.hBase + 180) % 360, 80, 10, 0.9));
-                        stripeGrad.addColorStop(1, "rgba(0,0,0,0)");
-                        
-                        customCtx.strokeStyle = stripeGrad;
-                        customCtx.lineWidth = 5.0;
-                        customCtx.beginPath();
-                        customCtx.moveTo(n.x + Math.cos(normalAng) * 18, n.y + Math.sin(normalAng) * 18);
-                        customCtx.lineTo(n.x - Math.cos(normalAng) * 18, n.y - Math.sin(normalAng) * 18);
-                        customCtx.stroke();
-                    }
-                } 
-                else if (this.phenotype.pattern === "Candy Solid") {
-                    let grad = customCtx.createLinearGradient(this.history[14].x, this.history[14].y, this.history[0].x, this.history[0].y);
-                    grad.addColorStop(0, this.colorAcc);
-                    grad.addColorStop(0.5, this.colorCore);
-                    grad.addColorStop(1, this.colorTrim);
-                    customCtx.fillStyle = grad;
-                    customCtx.fill();
-                }
-
-                customCtx.fillStyle = "rgba(255, 255, 255, 0.12)";
-                for(let k=0; k<25; k++) {
-                    let hNode = this.history[Math.min(k*2, this.history.length-1)];
-                    customCtx.fillRect(hNode.x + Math.sin(k*1.5)*7, hNode.y + Math.cos(k*1.5)*5, 1.8, 1.8);
-                }
-
-                customCtx.restore();
-            }
-
-            drawSophisticatedFinMesh(customCtx, startIndex, rays, lenScale, widthRange, typeSign, isPreview = false) {
-                let finScale = this.phenotype.clampedFin ? 0.45 : 1.0;
-                customCtx.save();
-                customCtx.beginPath();
-                
-                let structuralNodes = [];
-
-                for (let r = 0; r <= rays; r++) {
-                    const ratio = r / rays;
-                    const histIdx = Math.floor(startIndex + ratio * 12);
-                    const node = this.history[Math.min(histIdx, this.history.length - 1)];
-                    
-                    let dynamicWave = Math.sin(this.swimCycle - (histIdx * 0.22));
-                    let angleOffset = (ratio - 0.5) * widthRange;
-                    if (this.phenotype.shape === "Veiltail") angleOffset += 0.3; 
-                    
-                    const fAngle = node.angle + Math.PI + (0.65 * typeSign) + angleOffset;
-                    
-                    let baseLen = 44 * finScale * lenScale;
-                    if (this.phenotype.shape === "Halfmoon") baseLen *= 1.5; 
-                    if (this.phenotype.shape === "Veiltail") baseLen *= 1.8; 
-
-                    let endX = node.x + Math.cos(fAngle) * baseLen;
-                    let endY = node.y + Math.sin(fAngle) * baseLen + (dynamicWave * (isPreview ? 2 : 5));
-
-                    if (r === 0) customCtx.moveTo(node.x, node.y);
-                    structuralNodes.push({ bx: node.x, by: node.y, ex: endX, ey: endY });
-                    customCtx.lineTo(endX, endY);
-                }
-
-                for (let r = rays; r >= 0; r--) customCtx.lineTo(structuralNodes[r].bx, structuralNodes[r].by);
-                customCtx.closePath();
-                
-                customCtx.save();
-                customCtx.clip();
-                this.applySophisticatedTexture(customCtx, false);
-                customCtx.restore();
-
-                customCtx.save();
-                for (let r = 0; r <= rays; r++) {
-                    let rayGrad = customCtx.createLinearGradient(structuralNodes[r].bx, structuralNodes[r].by, structuralNodes[r].ex, structuralNodes[r].ey);
-                    rayGrad.addColorStop(0, "rgba(255,255,255,0.5)");
-                    rayGrad.addColorStop(0.5, this.colorTrim);
-                    rayGrad.addColorStop(1, "rgba(255,255,255,0.0)");
-                    
-                    customCtx.strokeStyle = rayGrad;
-                    customCtx.lineWidth = r % 2 === 0 ? 1.4 : 0.6;
-                    customCtx.beginPath();
-                    customCtx.moveTo(structuralNodes[r].bx, structuralNodes[r].by);
-                    customCtx.lineTo(structuralNodes[r].ex, structuralNodes[r].ey);
-                    customCtx.stroke();
-                }
-                customCtx.restore();
-
-                if (this.phenotype.shape === "Crowntail") {
-                    customCtx.save(); customCtx.globalCompositeOperation = "destination-out";
-                    customCtx.fillStyle = "rgba(0,0,0,1)";
-                    for (let r = 0; r < rays; r += 2) {
-                        customCtx.beginPath();
-                        customCtx.moveTo(structuralNodes[r].ex, structuralNodes[r].ey);
-                        customCtx.lineTo(structuralNodes[r+1].ex, structuralNodes[r+1].ey);
-                        customCtx.lineTo((structuralNodes[r].bx + structuralNodes[r].ex)/2, (structuralNodes[r].by + structuralNodes[r].ey)/2);
-                        customCtx.closePath(); customCtx.fill();
-                    }
-                    customCtx.restore();
-                }
-
-                let edgeGrad = customCtx.createLinearGradient(structuralNodes[0].ex, structuralNodes[0].ey, structuralNodes[rays].ex, structuralNodes[rays].ey);
-                edgeGrad.addColorStop(0, this.colorTrim); edgeGrad.addColorStop(0.5, "rgba(255,255,255,0.8)"); edgeGrad.addColorStop(1, this.colorTrim);
-                customCtx.strokeStyle = edgeGrad;
-                customCtx.lineWidth = 1.1;
-                customCtx.beginPath();
-                customCtx.moveTo(structuralNodes[0].ex, structuralNodes[0].ey);
-                for(let r=1; r<=rays; r++) customCtx.lineTo(structuralNodes[r].ex, structuralNodes[r].ey);
-                customCtx.stroke();
-
-                customCtx.restore();
-            }
-
             drawTo(targetCtx, isPreview = false) {
                 targetCtx.save();
-                const dir = this.facingRight ? 1 : -1;
-
+                
                 if (!isPreview && (selectedA === this || selectedB === this || hoveredFish === this)) {
                     targetCtx.strokeStyle = hoveredFish === this ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 229, 255, 0.5)';
                     targetCtx.lineWidth = 1.2;
                     targetCtx.setLineDash([4, 4]);
-                    targetCtx.beginPath(); targetCtx.arc(this.x, this.y, 48, 0, Math.PI*2); targetCtx.stroke();
+                    targetCtx.beginPath(); targetCtx.arc(this.x, this.y, 55, 0, Math.PI*2); targetCtx.stroke();
                     targetCtx.setLineDash([]);
                 }
 
-                this.drawSophisticatedFinMesh(targetCtx, 6, 18, 1.0, 1.15, 1, isPreview);
-                this.drawSophisticatedFinMesh(targetCtx, 3, 18, 0.9, 1.05, -1, isPreview);
+                targetCtx.translate(this.x, this.y);
+                targetCtx.rotate(this.angle * 0.2); // Gentle pitch aligned with swimming motion
 
-                targetCtx.save();
-                targetCtx.beginPath();
-                let cRays = 24;
-                let cNodes = [];
-                let finScale = this.phenotype.clampedFin ? 0.5 : 1.0;
-
-                for (let r = 0; r <= cRays; r++) {
-                    const ratio = r / cRays;
-                    const histIdx = Math.floor(14 + ratio * 12);
-                    const node = this.history[Math.min(histIdx, this.history.length - 1)];
-                    let spreadFactor = this.phenotype.shape === "Halfmoon" ? 2.6 : this.phenotype.shape === "Plakat" ? 0.9 : 1.45;
-                    
-                    const spreadAngle = (ratio - 0.5) * spreadFactor;
-                    const tAngle = node.angle + Math.PI + spreadAngle;
-                    
-                    let cLen = 50 * finScale;
-                    if (this.phenotype.shape === "Halfmoon") cLen *= 1.4;
-                    if (this.phenotype.shape === "Veiltail") cLen *= 1.7;
-                    
-                    let endX = node.x + Math.cos(tAngle) * cLen;
-                    let endY = node.y + Math.sin(tAngle) * cLen + (Math.sin(this.swimCycle - histIdx*0.18)*(isPreview ? 2 : 5));
-
-                    if (r === 0) targetCtx.moveTo(node.x, node.y);
-                    cNodes.push({ bx: node.x, by: node.y, ex: endX, ey: endY });
-                    targetCtx.lineTo(endX, endY);
-                }
-                for (let r = cRays; r >= 0; r--) targetCtx.lineTo(cNodes[r].bx, cNodes[r].by);
-                targetCtx.closePath();
-                
-                targetCtx.save();
-                targetCtx.clip();
-                this.applySophisticatedTexture(targetCtx, false);
-                targetCtx.restore();
-
-                for (let r = 0; r <= cRays; r++) {
-                    targetCtx.strokeStyle = "rgba(255,255,255,0.22)";
-                    targetCtx.lineWidth = 0.8;
-                    targetCtx.beginPath(); targetCtx.moveTo(cNodes[r].bx, cNodes[r].by); targetCtx.lineTo(cNodes[r].ex, cNodes[r].ey); targetCtx.stroke();
+                if (!this.facingRight) {
+                    targetCtx.scale(-1, 1);
                 }
 
-                if (this.phenotype.shape === "Crowntail") {
-                    targetCtx.save(); targetCtx.globalCompositeOperation = "destination-out";
-                    targetCtx.fillStyle = "rgba(0,0,0,1)";
-                    for (let r = 0; r < cRays; r += 2) {
-                        targetCtx.beginPath(); targetCtx.moveTo(cNodes[r].ex, cNodes[r].ey); targetCtx.lineTo(cNodes[r+1].ex, cNodes[r+1].ey);
-                        targetCtx.lineTo((cNodes[r].bx+cNodes[r].ex)/2, (cNodes[r].by+cNodes[r].ex)/2); targetCtx.closePath(); targetCtx.fill();
-                    }
-                    targetCtx.restore();
+                // Draw the asset image centered and scaled accurately
+                const assetWidth = 180;
+                const assetHeight = 100;
+                
+                if (referenceFishImage.complete && referenceFishImage.naturalWidth !== 0) {
+                    targetCtx.drawImage(referenceFishImage, -assetWidth / 2, -assetHeight / 2, assetWidth, assetHeight);
                 }
-
-                targetCtx.strokeStyle = this.colorTrim;
-                targetCtx.lineWidth = 1.3;
-                targetCtx.beginPath();
-                targetCtx.moveTo(cNodes[0].ex, cNodes[0].ey);
-                for(let r=1; r<=cRays; r++) targetCtx.lineTo(cNodes[r].ex, cNodes[r].ey);
-                targetCtx.stroke();
-                targetCtx.restore();
-
-                targetCtx.save();
-                targetCtx.beginPath();
-                for (let i = 0; i < this.bodySegments; i++) {
-                    const node = this.history[Math.min(i * 2, this.history.length - 1)];
-                    const thickness = (11.0 * (1 - (i / this.bodySegments))) + 1.8;
-                    targetCtx.arc(node.x, node.y, thickness, 0, Math.PI * 2);
-                }
-                targetCtx.closePath();
-                targetCtx.clip();
-                this.applySophisticatedTexture(targetCtx, true);
-                targetCtx.restore();
-
-                const headNode = this.history[0];
-                
-                targetCtx.strokeStyle = "rgba(0, 0, 0, 0.45)";
-                targetCtx.lineWidth = 2.2;
-                targetCtx.beginPath();
-                targetCtx.arc(headNode.x - (3.5 * dir), headNode.y, 7.5, -Math.PI/3, Math.PI/3);
-                targetCtx.stroke();
-
-                let eyeX = headNode.x + (6.5 * dir);
-                let eyeY = headNode.y - 1.5;
-                
-                targetCtx.fillStyle = "#02050a";
-                targetCtx.beginPath(); targetCtx.arc(eyeX, eyeY, 3.5, 0, Math.PI*2); targetCtx.fill();
-                
-                let irisGrad = targetCtx.createRadialGradient(eyeX, eyeY, 0, eyeX, eyeY, 3.2);
-                irisGrad.addColorStop(0, "#000");
-                irisGrad.addColorStop(0.7, this.colorTrim);
-                irisGrad.addColorStop(1, "#02050a");
-                targetCtx.fillStyle = irisGrad;
-                targetCtx.beginPath(); targetCtx.arc(eyeX, eyeY, 2.6, 0, Math.PI*2); targetCtx.fill();
-
-                targetCtx.fillStyle = "rgba(255,255,255,0.95)";
-                targetCtx.beginPath(); targetCtx.arc(eyeX + (1 * dir), eyeY - 1.1, 0.9, 0, Math.PI*2); targetCtx.fill();
 
                 targetCtx.restore();
             }
@@ -729,7 +487,7 @@
             if (discoveryWindow.classList.contains('show')) {
                 specCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
                 if (latestFry) {
-                    latestFry.x = specCanvas.width / 2 + 15;
+                    latestFry.x = specCanvas.width / 2;
                     latestFry.y = specCanvas.height / 2;
                     latestFry.facingRight = true;
                     latestFry.swimCycle += 0.04;
@@ -744,17 +502,6 @@
             ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
 
             popCountEl.innerText = `Active Phenotypes: ${school.length}`;
-
-            for(let i = dynamicTrails.length - 1; i >= 0; i--) {
-                let t = dynamicTrails[i];
-                t.alpha -= 0.025;
-                if(t.alpha <= 0) { dynamicTrails.splice(i, 1); continue; }
-                ctx.save();
-                ctx.globalAlpha = t.alpha;
-                ctx.fillStyle = t.color;
-                ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI*2); ctx.fill();
-                ctx.restore();
-            }
 
             ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
             particles.forEach(p => {
@@ -775,7 +522,14 @@
             requestAnimationFrame(engineLoop);
         }
 
-        engineLoop();
+        // Wait for image to load before starting loop
+        referenceFishImage.onload = () => {
+            engineLoop();
+        };
+        // Fallback start if already cached
+        if (referenceFishImage.complete) {
+            engineLoop();
+        }
     </script>
 </body>
 </html>
