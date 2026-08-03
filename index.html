@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aesthetic Polygenic Betta Aquarium</title>
+    <title>Polygenic Betta Genetic Lab - Fixed Kinematics</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #01060f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -76,6 +76,33 @@
         button:hover { background: linear-gradient(135deg, #ccff33, #9ef01a); color: #020b14; }
         button:disabled { background: #1e293b; color: #475569; cursor: not-allowed; border: none; }
 
+        .discovery-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 460px;
+            background: rgba(3, 12, 26, 0.95);
+            border: 2px solid #00b4d8;
+            border-radius: 16px;
+            z-index: 100;
+            color: #f8fafc;
+            padding: 25px;
+            box-shadow: 0 0 50px rgba(0, 180, 216, 0.4);
+            display: none;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .discovery-modal.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .modal-header { font-size: 1.1rem; font-weight: bold; color: #ccff33; margin-bottom: 15px; border-bottom: 1px solid rgba(0, 180, 216, 0.3); padding-bottom: 10px; display: flex; justify-content: space-between; }
+        .gene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; font-family: monospace; font-size: 0.8rem; }
+        .gene-card { background: rgba(255,255,255,0.04); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        .gene-name { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .gene-val { color: #00e5ff; font-weight: bold; margin-top: 2px; }
+        .gene-alert { color: #ff3366; font-weight: bold; }
+        .close-modal-btn { background: #ccff33; color: #020b14; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; }
+        .close-modal-btn:hover { background: #9ef01a; }
+
         .interaction-tip {
             position: absolute;
             bottom: 25px;
@@ -107,6 +134,20 @@
         </div>
     </div>
 
+    <div class="discovery-modal" id="discovery-window">
+        <div class="modal-header">
+            <span>🔬 Offspring Sequencing Result</span>
+            <span style="color: #94a3b8; font-size: 0.8rem;" id="fry-id-tag">ID: 0</span>
+        </div>
+        <div style="font-size: 0.85rem; margin-bottom: 15px; color: #cbd5e1;">
+            A new genome architecture has stabilized. Phenotypic markers map the following structural expressions:
+        </div>
+        <div class="gene-grid" id="gene-display-target"></div>
+        <div style="text-align: right;">
+            <button class="close-modal-btn" onclick="closeDiscoveryWindow()" style="width: auto; padding: 8px 20px;">Release into Tank</button>
+        </div>
+    </div>
+
     <div class="interaction-tip">
         Click a Betta to select for breeding.<br>Tap empty space to drop nutritional pellets.
     </div>
@@ -121,6 +162,9 @@
         const slotBEl = document.getElementById('slot-b');
         const breedBtn = document.getElementById('breed-btn');
         const breederInput = document.getElementById('breeder-input');
+        const discoveryWindow = document.getElementById('discovery-window');
+        const geneDisplayTarget = document.getElementById('gene-display-target');
+        const fryIdTag = document.getElementById('fry-id-tag');
 
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
@@ -131,7 +175,6 @@
         let selectedA = null;
         let selectedB = null;
 
-        // Populate beautiful ambient water particles
         for(let i=0; i<70; i++) {
             particles.push({
                 x: Math.random() * width,
@@ -149,6 +192,7 @@
 
         window.addEventListener('click', (e) => {
             if (e.clientX < 350 && e.clientY < 400) return;
+            if (discoveryWindow.classList.contains('show')) return;
 
             let clickedFish = null;
             for (let betta of school) {
@@ -164,59 +208,51 @@
         });
 
         function handleFishSelection(fish) {
-            if (selectedA === fish) {
-                selectedA = null;
-            } else if (selectedB === fish) {
-                selectedB = null;
-            } else if (!selectedA) {
-                selectedA = fish;
-            } else {
-                selectedB = fish;
-            }
+            if (selectedA === fish) selectedA = null;
+            else if (selectedB === fish) selectedB = null;
+            else if (!selectedA) selectedA = fish;
+            else selectedB = fish;
             updateSelectionHUD();
         }
 
         function updateSelectionHUD() {
-            if (selectedA) {
-                slotAEl.innerText = `A: ID-${selectedA.id} [Color: ${Math.floor(selectedA.phenotype.hBase)}° / Fins: ${getFinLabel(selectedA.phenotype.fSize)}]`;
-                slotAEl.classList.add('active');
-            } else {
-                slotAEl.innerText = "Select Parent A...";
-                slotAEl.classList.remove('active');
-            }
+            slotAEl.innerText = selectedA ? `A: ID-${selectedA.id} [Fin Size: ${selectedA.phenotype.fSize.toFixed(2)}]` : "Select Parent A...";
+            selectedA ? slotAEl.classList.add('active') : slotAEl.classList.remove('active');
 
-            if (selectedB) {
-                slotBEl.innerText = `B: ID-${selectedB.id} [Color: ${Math.floor(selectedB.phenotype.hBase)}° / Fins: ${getFinLabel(selectedB.phenotype.fSize)}]`;
-                slotBEl.classList.add('active');
-            } else {
-                slotBEl.innerText = "Select Parent B...";
-                slotBEl.classList.remove('active');
-            }
+            slotBEl.innerText = selectedB ? `B: ID-${selectedB.id} [Fin Size: ${selectedB.phenotype.fSize.toFixed(2)}]` : "Select Parent B...";
+            selectedB ? slotBEl.classList.add('active') : slotBEl.classList.remove('active');
 
             breedBtn.disabled = !(selectedA && selectedB);
         }
 
-        function getFinLabel(size) {
-            if (size < 0.95) return "Plakat";
-            if (size < 1.45) return "Veiltail";
-            return "Halfmoon";
-        }
-
         function executeManualBreeding() {
             if (!selectedA || !selectedB) return;
-            
             const breederName = breederInput.value.trim() || "Anonymous";
-            const fry = new AquariumBetta(selectedA.genome, selectedB.genome, selectedA.x, selectedA.y, breederName);
+            const fry = new AquariumBetta(selectedA.genome, selectedB.genome, width / 2, height / 2 - 50, breederName);
             school.push(fry);
-            
-            selectedA = null;
-            selectedB = null;
+            triggerDiscoveryWindow(fry);
+            selectedA = null; selectedB = null;
             updateSelectionHUD();
         }
 
-        function hslStr(h, s, l, a = 1) {
-            return `hsla(${Math.floor(h) % 360}, ${s}%, ${l}%, ${a})`;
+        function triggerDiscoveryWindow(fish) {
+            fryIdTag.innerText = `GEN-SPECIMEN ID: ${fish.id}`;
+            let structuralNotes = "Normal Morphology";
+            if (fish.phenotype.lordosis) structuralNotes = "<span class='gene-alert'>Lordosis (Spinal Bend Defect)</span>";
+            else if (fish.phenotype.finRotRisk > 0.6) structuralNotes = "<span class='gene-alert'>Frayed Operculum / Fin Rot Risk</span>";
+
+            geneDisplayTarget.innerHTML = `
+                <div class="gene-card"><div class="gene-name">Base Chromosome Color</div><div class="gene-val">${Math.floor(fish.phenotype.hBase)}° HSL</div></div>
+                <div class="gene-card"><div class="gene-name">Accent Trim Color</div><div class="gene-val">${Math.floor(fish.phenotype.hAcc)}° HSL</div></div>
+                <div class="gene-card"><div class="gene-name">Target Fin Surface Area</div><div class="gene-val">${(fish.phenotype.fSize * 100).toFixed(0)}% Scaled</div></div>
+                <div class="gene-card"><div class="gene-name">Locomotion Velocity Type</div><div class="gene-val" style="color:${fish.phenotype.isFast ? '#ccff33' : '#00e5ff'}">${fish.phenotype.isFast ? 'Fast Swimmer' : 'Standard'}</div></div>
+                <div class="gene-card" style="grid-column: span 2;"><div class="gene-name">Pathological Anomalies</div><div class="gene-val">${structuralNotes}</div></div>
+            `;
+            discoveryWindow.classList.add('show');
         }
+
+        function closeDiscoveryWindow() { discoveryWindow.classList.remove('show'); }
+        function hslStr(h, s, l, a = 1) { return `hsla(${Math.floor(h) % 360}, ${s}%, ${l}%, ${a})`; }
 
         let idCounter = 1;
 
@@ -227,38 +263,52 @@
                 this.x = spawnX || Math.random() * width;
                 this.y = spawnY || (0.2 + Math.random() * 0.6) * height;
                 
-                this.vx = (Math.random() - 0.5) * 1.4;
-                this.vy = (Math.random() - 0.5) * 0.4;
-                this.maxForce = 0.015;
+                // --- KINEMATIC STATE VARIABLES ---
+                this.angle = Math.random() * Math.PI * 2; // Real heading orientation
+                this.speed = 0.5 + Math.random() * 0.5;
+                this.targetAngle = this.angle;
+                
+                this.vx = Math.cos(this.angle) * this.speed;
+                this.vy = Math.sin(this.angle) * this.speed;
+                
                 this.facingRight = this.vx > 0;
 
-                // --- ADVANCED GENOME WITH MATING SYSTEM VARIATIONS ---
+                // --- GENOME LAYOUT ---
                 if (parentA && parentB) {
                     this.genome = {
                         hueBase:    this.cross(parentA.hueBase, parentB.hueBase, 360, true),
                         hueAccent:  this.cross(parentA.hueAccent, parentB.hueAccent, 360, true),
                         metallic:   this.cross(parentA.metallic, parentB.metallic, 1.0, false),
                         finSize:    this.cross(parentA.finSize, parentB.finSize, 2.5, false),
-                        tailSpread: this.cross(parentA.tailSpread, parentB.tailSpread, 2.5, false)
+                        tailSpread: this.cross(parentA.tailSpread, parentB.tailSpread, 2.5, false),
+                        swimVelocityGene: this.cross(parentA.swimVelocityGene, parentB.swimVelocityGene, 1.0, false),
+                        spinalDeformity:  this.cross(parentA.spinalDeformity, parentB.spinalDeformity, 1.0, false),
+                        finDegradation:   this.cross(parentA.finDegradation, parentB.finDegradation, 1.0, false)
                     };
                 } else {
-                    // Random Base Genetic Configurations
                     this.genome = {
                         hueBase:    [Math.random() * 360, Math.random() * 360],
-                        hueAccent:  [(Math.random() * 360), Math.random() * 360],
+                        hueAccent:  [Math.random() * 360, Math.random() * 360],
                         metallic:   [Math.random(), Math.random()],
-                        finSize:    [0.6 + Math.random() * 1.8, 0.6 + Math.random() * 1.8],
-                        tailSpread: [0.8 + Math.random() * 1.6, 0.8 + Math.random() * 1.6]
+                        finSize:    [0.6 + Math.random() * 1.6, 0.6 + Math.random() * 1.6],
+                        tailSpread: [0.8 + Math.random() * 1.5, 0.8 + Math.random() * 1.5],
+                        swimVelocityGene: [Math.random(), Math.random()],
+                        spinalDeformity:  [Math.random() * 0.25, Math.random() * 0.25],
+                        finDegradation:   [Math.random(), Math.random()]
                     };
                 }
 
                 this.expressPhenotypes();
 
-                // Advanced high-fidelity physics tracking spine nodes
+                // Dynamic Turn Rate Constraint (Sciency: Rotational Inertia)
+                // Bigger fins make the fish turn slower
+                this.maxTurnRate = 0.04 - (this.phenotype.fSize * 0.008); 
+                if (this.phenotype.lordosis) this.maxTurnRate *= 0.5; // Spine defect slows down turning ability
+
                 this.bodySegments = 12;
                 this.history = [];
-                for(let i = 0; i < 50; i++) {
-                    this.history.push({ x: this.x, y: this.y, angle: 0 });
+                for(let i = 0; i < 55; i++) {
+                    this.history.push({ x: this.x, y: this.y, angle: this.angle });
                 }
                 this.swimCycle = Math.random() * 100;
             }
@@ -267,9 +317,9 @@
                 const a = pairA[Math.floor(Math.random() * 2)];
                 const b = pairB[Math.floor(Math.random() * 2)];
                 let out = [a, b];
-                if (Math.random() < 0.12) { // Mutation rate
+                if (Math.random() < 0.15) {
                     const idx = Math.floor(Math.random() * 2);
-                    out[idx] = circular ? (out[idx] + (Math.random() * 90 - 45) + 360) % range : Math.min(range, Math.max(0.4, out[idx] + (Math.random() * 0.5 - 0.25)));
+                    out[idx] = circular ? (out[idx] + (Math.random() * 90 - 45) + 360) % range : Math.min(range, Math.max(0.0, out[idx] + (Math.random() * 0.4 - 0.2)));
                 }
                 return out;
             }
@@ -281,57 +331,85 @@
                     hAcc:  resolve(this.genome.hueAccent),
                     metal: resolve(this.genome.metallic),
                     fSize: resolve(this.genome.finSize),
-                    spread: resolve(this.genome.tailSpread)
+                    spread: resolve(this.genome.tailSpread),
+                    isFast: resolve(this.genome.swimVelocityGene) > 0.65,
+                    lordosis: resolve(this.genome.spinalDeformity) > 0.45,
+                    finRotRisk: resolve(this.genome.finDegradation)
                 };
 
-                // Pigment Layer Setup
                 this.colorCore = hslStr(this.phenotype.hBase, 85, 42, 1);
                 this.colorFinInner = hslStr(this.phenotype.hBase, 95, 45, 0.65);
                 this.colorFinOuter = hslStr(this.phenotype.hAcc, 95, 55, 0.5);
                 this.colorFinEdge = hslStr(this.phenotype.hAcc, 100, 75, 0.2);
                 this.colorGlint = hslStr(this.phenotype.hAcc, 90, 70, this.phenotype.metal * 0.7);
                 
-                this.maxSpeed = 1.7 - (this.phenotype.fSize * 0.25);
+                let speedBase = this.phenotype.isFast ? 2.4 : 1.4;
+                this.targetSpeed = speedBase - (this.phenotype.fSize * 0.2);
+                if (this.phenotype.lordosis) this.targetSpeed *= 0.5;
             }
 
             update() {
+                // --- FIXED PHYSICS PIPELINE: ORIENTED STEER & THRUST ---
+                // 1. Calculate directional angle gap using modular wrapping
+                let angleDiff = this.targetAngle - this.angle;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+                // 2. Clamp angular turn change to remove instant snapping/veering
+                this.angle += Math.max(-this.maxTurnRate, Math.min(this.maxTurnRate, angleDiff));
+
+                // 3. Smoothly interpolate velocity changes
+                this.speed += (this.targetSpeed - this.speed) * 0.05;
+
+                // 4. Force movement vector to strictly line up with head orientation
+                this.vx = Math.cos(this.angle) * this.speed;
+                this.vy = Math.sin(this.angle) * this.speed;
+
                 this.x += this.vx;
                 this.y += this.vy;
 
                 if (Math.abs(this.vx) > 0.05) this.facingRight = this.vx > 0;
 
-                if (this.x < 60) { this.x = 60; this.vx *= -1; }
-                if (this.x > width - 60) { this.x = width - 60; this.vx *= -1; }
-                if (this.y < 80) { this.y = 80; this.vy *= -1; }
-                if (this.y > height - 80) { this.y = height - 80; this.vy *= -1; }
+                // Wall bounce physics cleanly changes target angles
+                if (this.x < 60) { this.x = 60; this.targetAngle = 0; this.angle = 0; }
+                if (this.x > width - 60) { this.x = width - 60; this.targetAngle = Math.PI; this.angle = Math.PI; }
+                if (this.y < 80) { this.y = 80; this.targetAngle = Math.PI/2; }
+                if (this.y > height - 80) { this.y = height - 80; this.targetAngle = -Math.PI/2; }
 
-                const speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
-                this.swimCycle += speed * 0.07 + 0.015;
+                // Dynamic structural wave generation based on speed
+                const cycleSpeed = this.phenotype.lordosis ? 0.14 : 0.06;
+                this.swimCycle += this.speed * cycleSpeed + 0.01;
 
-                let angle = Math.atan2(this.vy, this.vx);
-                this.history.unshift({ x: this.x, y: this.y, angle: angle });
+                let expressedAngle = this.angle;
+                if (this.phenotype.lordosis) {
+                    expressedAngle += Math.sin(this.swimCycle * 2.2) * 0.4;
+                }
+
+                // Node chain inheritance pipeline
+                this.history.unshift({ x: this.x, y: this.y, angle: expressedAngle });
                 if (this.history.length > 55) this.history.pop();
             }
 
             flock(school) {
-                let sepX = 0, sepY = 0, neighbors = 0;
+                let forceX = 0, forceY = 0;
+                let separationCount = 0;
+                let distThreshold = this.phenotype.isFast ? 60 : 100;
+
+                // 1. Analyze Social Separation Factors
                 for (let other of school) {
                     if (other === this) continue;
                     const dX = other.x - this.x;
                     const dY = other.y - this.y;
                     const dist = Math.sqrt(dX*dX + dY*dY);
-                    if (dist < 90) {
-                        sepX -= dX / (dist + 0.001);
-                        sepY -= dY / (dist + 0.001);
-                        neighbors++;
+                    if (dist < distThreshold) {
+                        forceX -= dX / (dist + 0.001);
+                        forceY -= dY / (dist + 0.001);
+                        separationCount++;
                     }
                 }
 
-                if (neighbors > 0) {
-                    let sF = this.steer(sepX * 1.5, sepY * 1.0);
-                    this.vx += sF.x; this.vy += sF.y;
-                }
-
+                // 2. Analyze Food Trajectories
+                let targetedFood = false;
                 if (foods.length > 0) {
                     let closest = null; let closestDist = Infinity;
                     for (let food of foods) {
@@ -339,39 +417,37 @@
                         if (d < closestDist) { closestDist = d; closest = food; }
                     }
                     if (closest && closestDist < 600) {
-                        let fSeek = this.steer(closest.x - this.x, closest.y - this.y);
-                        this.vx += fSeek.x * 1.3; this.vy += fSeek.y * 1.3;
-                        if (closestDist < 18) {
+                        forceX += (closest.x - this.x) * 2.0;
+                        forceY += (closest.y - this.y) * 2.0;
+                        targetedFood = true;
+
+                        if (closestDist < 20) {
                             const idx = foods.indexOf(closest);
                             if (idx > -1) foods.splice(idx, 1);
                         }
                     }
                 }
 
-                if (Math.random() < 0.02) {
-                    this.vx += (Math.random() - 0.5) * 0.35;
-                    this.vy += (Math.random() - 0.5) * 0.12;
+                // 3. Natural Wander Vectors (Applied only if not targeting food)
+                if (!targetedFood && Math.random() < 0.01) {
+                    this.targetAngle += (Math.random() - 0.5) * 1.5;
                 }
 
-                const s = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
-                if (s > this.maxSpeed) { this.vx = (this.vx/s)*this.maxSpeed; this.vy = (this.vy/s)*this.maxSpeed; }
+                // Update overarching target targetAngle if steering forces are detected
+                if (separationCount > 0 || targetedFood) {
+                    this.targetAngle = Math.atan2(forceY, forceX);
+                }
             }
 
-            steer(tX, tY) {
-                let dX = tX - this.vx; let dY = tY - this.vy;
-                const d = Math.sqrt(dX * dX + dY * dY);
-                if (d > this.maxForce) { dX = (dX / d) * this.maxForce; dY = (dY / d) * this.maxForce; }
-                return { x: dX, y: dY };
-            }
-
-            // MESH FIN RENDERING: Connects neighboring rays to build continuous flowing sheets
             drawMeshFin(historyStartIndex, rayCount, lengthScale, widthRange, isDorsal) {
                 const size = this.phenotype.fSize;
                 const spread = this.phenotype.spread;
-                
+                const isRotten = this.phenotype.finRotRisk > 0.65;
                 let previousRayPoints = null;
 
                 for (let r = 0; r <= rayCount; r++) {
+                    if (isRotten && r % 4 === 0) { previousRayPoints = null; continue; }
+
                     const rayRatio = r / rayCount;
                     const historyIndex = Math.floor(historyStartIndex + rayRatio * 15);
                     const node = this.history[Math.min(historyIndex, this.history.length - 1)];
@@ -380,8 +456,9 @@
                     const angleOffset = (rayRatio - 0.5) * widthRange * spread;
                     
                     const targetAngle = node.angle + Math.PI + (isDorsal ? -0.45 : 0.45) + angleOffset;
-                    // Creates an organic, rounded silhouette contour instead of spiked lines
-                    const finLen = 48 * size * lengthScale * (0.85 + Math.sin(rayRatio * Math.PI) * 0.35);
+                    let finLen = 48 * size * lengthScale * (0.85 + Math.sin(rayRatio * Math.PI) * 0.35);
+
+                    if (isRotten) finLen *= 0.75;
 
                     const midX = node.x + Math.cos(targetAngle) * (finLen * 0.5);
                     const midY = node.y + Math.sin(targetAngle) * (finLen * 0.5) + wave * 0.6;
@@ -398,11 +475,10 @@
                         ctx.quadraticCurveTo(currentRayPoints.mid.x, currentRayPoints.mid.y, currentRayPoints.base.x, currentRayPoints.base.y);
                         ctx.closePath();
 
-                        // Multi-stage color gradient matching true halfmoon overlapping sheets
                         const grad = ctx.createLinearGradient(node.x, node.y, endX, endY);
                         grad.addColorStop(0, this.colorFinInner);
                         grad.addColorStop(0.5, this.colorFinOuter);
-                        grad.addColorStop(0.9, this.colorFinEdge);
+                        grad.addColorStop(0.9, isRotten ? 'rgba(90, 85, 80, 0.4)' : this.colorFinEdge);
                         grad.addColorStop(1.0, 'rgba(255,255,255,0)');
 
                         ctx.fillStyle = grad;
@@ -414,37 +490,29 @@
 
             draw() {
                 ctx.save();
-                
                 const size = this.phenotype.fSize;
                 const spread = this.phenotype.spread;
                 const dir = this.facingRight ? 1 : -1;
 
-                // Selection Highlights
                 if (selectedA === this || selectedB === this) {
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = '#ccff33';
-                    ctx.strokeStyle = '#ccff33';
-                    ctx.lineWidth = 2.5;
+                    ctx.shadowBlur = 20; ctx.shadowColor = '#ccff33';
+                    ctx.strokeStyle = '#ccff33'; ctx.lineWidth = 2.5;
                     ctx.beginPath(); ctx.arc(this.x, this.y, 40, 0, Math.PI*2); ctx.stroke();
-                    ctx.shadowBlur = 0;
-                    ctx.font = 'bold 9px sans-serif';
-                    ctx.fillStyle = '#ccff33';
+                    ctx.shadowBlur = 0; ctx.font = 'bold 9px sans-serif'; ctx.fillStyle = '#ccff33';
                     ctx.fillText(selectedA === this ? 'PARENT A' : 'PARENT B', this.x - 24, this.y - 50);
                 }
 
                 ctx.globalCompositeOperation = "screen";
-
-                // 1. TOP DORSAL VEIL MESH
                 this.drawMeshFin(4, 14, 1.25, 0.95, true);
-
-                // 2. BOTTOM VENTRAL VEIL MESH
                 this.drawMeshFin(2, 16, 1.15, 0.85, false);
 
-                // 3. CAUDAL HALFMOON MESH (Gorgeous, continuous fabric sheet)
                 let previousCaudalPoints = null;
                 const caudalRays = 26;
+                const isRotten = this.phenotype.finRotRisk > 0.65;
 
                 for (let r = 0; r <= caudalRays; r++) {
+                    if (isRotten && r % 5 === 0) { previousCaudalPoints = null; continue; }
+
                     const rayRatio = r / caudalRays;
                     const historyIndex = Math.floor(12 + rayRatio * 10);
                     const node = this.history[Math.min(historyIndex, this.history.length - 1)];
@@ -452,7 +520,9 @@
                     const wave = Math.sin(this.swimCycle - (historyIndex * 0.25)) * (14 * size);
                     const spreadAngle = (rayRatio - 0.5) * (1.95 * spread); 
                     const tAngle = node.angle + Math.PI + spreadAngle;
-                    const cLen = 70 * size * (0.9 + Math.sin(rayRatio * Math.PI) * 0.22);
+                    let cLen = 70 * size * (0.9 + Math.sin(rayRatio * Math.PI) * 0.22);
+
+                    if (isRotten) cLen *= 0.7;
 
                     const midX = node.x + Math.cos(tAngle) * (cLen * 0.5);
                     const midY = node.y + Math.sin(tAngle) * (cLen * 0.5) + wave * 0.5;
@@ -472,7 +542,7 @@
                         const grad = ctx.createLinearGradient(node.x, node.y, endX, endY);
                         grad.addColorStop(0, this.colorFinInner);
                         grad.addColorStop(0.5, this.colorFinOuter);
-                        grad.addColorStop(0.88, this.colorFinEdge);
+                        grad.addColorStop(0.88, isRotten ? 'rgba(90, 85, 80, 0.3)' : this.colorFinEdge);
                         grad.addColorStop(1.0, 'rgba(255,255,255,0)');
 
                         ctx.fillStyle = grad;
@@ -481,88 +551,74 @@
                     previousCaudalPoints = currentPoints;
                 }
 
-                // 4. ANATOMICAL BODY SPINDLE TAPER
                 ctx.globalCompositeOperation = "source-over";
-                ctx.shadowBlur = 6;
-                ctx.shadowColor = this.colorCore;
+                ctx.shadowBlur = 6; ctx.shadowColor = this.colorCore;
                 
                 for (let i = 0; i < this.bodySegments; i++) {
                     const node = this.history[Math.min(i * 2, this.history.length - 1)];
                     const t = (1 - (i / this.bodySegments));
                     const thickness = (8.5 * t) + 1.2;
 
-                    if (this.phenotype.metal > 0.35 && i < 6) {
-                        ctx.fillStyle = this.colorGlint;
-                    } else {
-                        ctx.fillStyle = this.colorCore;
-                    }
-
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, thickness, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.fillStyle = (this.phenotype.metal > 0.35 && i < 6) ? this.colorGlint : this.colorCore;
+                    ctx.beginPath(); ctx.arc(node.x, node.y, thickness, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.shadowBlur = 0;
 
-                // 5. PECTORAL SILK FLAPS & OCULAR ELEMENTS
                 const headNode = this.history[0];
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.beginPath();
-                ctx.ellipse(headNode.x, headNode.y + 3, 5, 9, (dir * 0.4), 0, Math.PI * 2);
-                ctx.fill();
+                ctx.beginPath(); ctx.ellipse(headNode.x, headNode.y + 3, 5, 9, (dir * 0.4), 0, Math.PI * 2); ctx.fill();
 
-                // Clear eye profile elements
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath(); ctx.arc(headNode.x + (6 * dir), headNode.y - 1, 2.2, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#010814';
                 ctx.beginPath(); ctx.arc(headNode.x + (6.8 * dir), headNode.y - 1, 1.2, 0, Math.PI * 2); ctx.fill();
 
-                // UI Identifier Tags
                 ctx.font = '500 9px monospace';
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-                ctx.fillText(`ID:${this.id} (${Math.floor(this.phenotype.hBase)}°)`, headNode.x - 25, headNode.y + 24);
+                let label = this.phenotype.isFast ? " [FAST]" : "";
+                if (this.phenotype.lordosis) label = " [DEFECT]";
+                ctx.fillText(`ID:${this.id}${label}`, headNode.x - 25, headNode.y + 24);
 
                 ctx.restore();
             }
         }
 
-        // Initialize primary population loop
-        for(let i = 0; i < 7; i++) { school.push(new AquariumBetta()); }
+        for(let i = 0; i < 6; i++) { school.push(new AquariumBetta()); }
 
         function engineLoop() {
-            // Smooth deep watercolor wash
+            if (discoveryWindow.classList.contains('show')) {
+                ctx.fillStyle = 'rgba(1, 6, 15, 0.04)';
+                ctx.fillRect(0, 0, width, height);
+                const newestFry = school[school.length - 1];
+                if (newestFry) {
+                    newestFry.speed = 0;
+                    newestFry.update();
+                    newestFry.draw();
+                }
+                requestAnimationFrame(engineLoop);
+                return;
+            }
+
             const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
-            bgGrad.addColorStop(0, '#041324');
-            bgGrad.addColorStop(0.6, '#020b14');
-            bgGrad.addColorStop(1, '#000408');
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(0, 0, width, height);
+            bgGrad.addColorStop(0, '#041324'); bgGrad.addColorStop(0.6, '#020b14'); bgGrad.addColorStop(1, '#000408');
+            ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, width, height);
 
             popCountEl.innerText = `Bettas Active: ${school.length}`;
 
-            // Render environmental particles
             ctx.fillStyle = 'rgba(0, 180, 216, 0.18)';
             particles.forEach(p => {
-                p.phase += 0.008;
-                p.y -= p.speed;
-                p.x += Math.sin(p.phase) * 0.25;
-
+                p.phase += 0.008; p.y -= p.speed; p.x += Math.sin(p.phase) * 0.25;
                 if(p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
             });
 
-            // Process nutrients positions
             for (let i = foods.length - 1; i >= 0; i--) {
-                let f = foods[i];
-                f.y += f.vy;
+                let f = foods[i]; f.y += f.vy;
                 if (f.y > height - 30) { foods.splice(i, 1); continue; }
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = '#ccff33';
-                ctx.fillStyle = '#ccff33';
-                ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2); ctx.fill();
-                ctx.shadowBlur = 0;
+                ctx.shadowBlur = 8; ctx.shadowColor = '#ccff33'; ctx.fillStyle = '#ccff33';
+                ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
             }
 
-            // Entities update execution
             school.forEach(betta => {
                 betta.flock(school);
                 betta.update();
