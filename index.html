@@ -3,106 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Polygenic Betta Selective Breeding Lab</title>
+    <title>Aesthetic Polygenic Betta Aquarium</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #010c1a; font-family: monospace; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #020b14; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
         .hud-panel {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 25px;
+            left: 25px;
             z-index: 10;
-            color: #00f5d4;
-            background: rgba(2, 16, 37, 0.95);
-            padding: 15px;
-            border: 1px solid #00b4d8;
-            border-radius: 6px;
-            box-shadow: 0 0 20px rgba(0, 245, 212, 0.15);
-            width: 280px;
+            color: #e2e8f0;
+            background: rgba(4, 17, 32, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 20px;
+            border: 1px solid rgba(0, 180, 216, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            width: 300px;
         }
-        .hud-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 8px; text-transform: uppercase; color: #ccff33; }
-        .hud-stat { font-size: 0.8rem; color: #fff; opacity: 0.9; margin-bottom: 4px; }
+        .hud-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; color: #ccff33; }
+        .hud-stat { font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px; }
         
         .breed-panel {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px dashed #00b4d8;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         .selector-slot {
-            background: rgba(255,255,255,0.05);
-            padding: 6px;
-            margin-bottom: 6px;
-            font-size: 0.75rem;
-            color: #aaa;
-            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            color: #64748b;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: nowrap;
+            transition: all 0.25s ease;
         }
-        .selector-slot.active { color: #fff; border: 1px solid #ccff33; background: rgba(204,255,51,0.05); }
+        .selector-slot.active { color: #fff; border: 1px solid #ccff33; background: rgba(204, 255, 51, 0.08); }
         
         input[type="text"] {
             width: 100%;
-            background: #010c1a;
-            border: 1px solid #00b4d8;
+            background: rgba(1, 12, 26, 0.6);
+            border: 1px solid rgba(0, 180, 216, 0.4);
             color: #fff;
-            padding: 5px;
-            margin-bottom: 8px;
-            font-family: monospace;
-            font-size: 0.8rem;
-            border-radius: 4px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            border-radius: 6px;
         }
         input[type="text"]:focus { outline: none; border-color: #ccff33; }
         
         button {
             width: 100%;
-            background: #00b4d8;
-            color: #010c1a;
+            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            color: #fff;
             border: none;
-            padding: 8px;
-            font-weight: bold;
-            font-family: monospace;
+            padding: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 6px;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
         }
-        button:hover { background: #ccff33; }
-        button:disabled { background: #334e68; color: #627d98; cursor: not-allowed; }
+        button:hover { background: linear-gradient(135deg, #ccff33, #9ef01a); color: #020b14; }
+        button:disabled { background: #1e293b; color: #475569; cursor: not-allowed; border: none; }
 
         .interaction-tip {
             position: absolute;
-            bottom: 20px;
+            bottom: 25px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.35);
             font-size: 0.75rem;
             pointer-events: none;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             text-align: center;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
 
     <div class="hud-panel">
-        <div class="hud-title">🧬 Selective Breeding Lab</div>
-        <div class="hud-stat" id="pop-count">Bettas: 0</div>
+        <div class="hud-title">🧬 Aquascaping & Breeding</div>
+        <div class="hud-stat" id="pop-count">Bettas Active: 0</div>
         
         <div class="breed-panel">
-            <div class="hud-title" style="font-size:0.8rem; color:#00b4d8;">Mating Selection</div>
-            <div class="selector-slot" id="slot-a">Parent A: Click a Betta...</div>
-            <div class="selector-slot" id="slot-b">Parent B: Click a second Betta...</div>
-            <input type="text" id="breeder-input" placeholder="Enter Breeder Name" value="Lab Assistant">
-            <button id="breed-btn" disabled onclick="executeManualBreeding()">Perform Cross</button>
+            <div class="hud-title" style="font-size:0.8rem; color:#00b4d8;">Selective Pairing</div>
+            <div class="selector-slot" id="slot-a">Select Parent A...</div>
+            <div class="selector-slot" id="slot-b">Select Parent B...</div>
+            <input type="text" id="breeder-input" placeholder="Breeder Name" value="Lab Assistant">
+            <button id="breed-btn" disabled onclick="executeManualBreeding()">Cross Chromosomes</button>
         </div>
     </div>
 
     <div class="interaction-tip">
-        Click a Betta to select for breeding.<br>Click empty water to drop nutritional pellets.
+        Click a Betta to select for breeding.<br>Tap empty space to drop nutritional pellets.
     </div>
 
     <canvas id="aquarium-canvas"></canvas>
@@ -121,44 +127,39 @@
 
         const school = [];
         const foods = [];
+        const particles = [];
         let selectedA = null;
         let selectedB = null;
-        let audioCtx = null;
+
+        // Populate smooth background aesthetic ambient floats
+        for(let i=0; i<60; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                r: Math.random() * 2 + 0.5,
+                speed: Math.random() * 0.2 + 0.05,
+                phase: Math.random() * Math.PI * 2
+            });
+        }
 
         window.addEventListener('resize', () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         });
 
-        function playTone(freq, duration, type = 'sine') {
-            try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-                osc.start(); osc.stop(audioCtx.currentTime + duration);
-            } catch(e){}
-        }
-
         window.addEventListener('click', (e) => {
-            if (e.clientX < 310 && e.clientY < 300) return;
+            if (e.clientX < 340 && e.clientY < 340) return;
 
             let clickedFish = null;
             for (let betta of school) {
                 const dist = Math.sqrt((e.clientX - betta.x) ** 2 + (e.clientY - betta.y) ** 2);
-                if (dist < 40) { clickedFish = betta; break; }
+                if (dist < 55) { clickedFish = betta; break; }
             }
 
             if (clickedFish) {
                 handleFishSelection(clickedFish);
             } else {
-                foods.push({ x: e.clientX, y: e.clientY, radius: 4, vy: 1.2 });
-                playTone(220, 0.08, 'sine');
+                foods.push({ x: e.clientX, y: e.clientY, radius: 3.5, vy: 0.9 });
             }
         });
 
@@ -177,32 +178,37 @@
 
         function updateSelectionHUD() {
             if (selectedA) {
-                slotAEl.innerText = `A: ID-${selectedA.id} (${selectedA.breeder})`;
+                slotAEl.innerText = `A: ID-${selectedA.id} [Fins: ${getFinLabel(selectedA.phenotype.fSize)}]`;
                 slotAEl.classList.add('active');
             } else {
-                slotAEl.innerText = "Parent A: Click a Betta...";
+                slotAEl.innerText = "Select Parent A...";
                 slotAEl.classList.remove('active');
             }
 
             if (selectedB) {
-                slotBEl.innerText = `B: ID-${selectedB.id} (${selectedB.breeder})`;
+                slotBEl.innerText = `B: ID-${selectedB.id} [Fins: ${getFinLabel(selectedB.phenotype.fSize)}]`;
                 slotBEl.classList.add('active');
             } else {
-                slotBEl.innerText = "Parent B: Click a second Betta...";
+                slotBEl.innerText = "Select Parent B...";
                 slotBEl.classList.remove('active');
             }
 
             breedBtn.disabled = !(selectedA && selectedB);
         }
 
+        function getFinLabel(size) {
+            if (size < 0.9) return "Plakat (Short)";
+            if (size < 1.4) return "Veiltail (Mid)";
+            return "Halfmoon (Super Long)";
+        }
+
         function executeManualBreeding() {
             if (!selectedA || !selectedB) return;
             
-            const breederName = breederInput.value.trim() || "Unknown Breeder";
+            const breederName = breederInput.value.trim() || "Anonymous";
+            // Offspring spawned near the parent location coordinates
             const fry = new AquariumBetta(selectedA.genome, selectedB.genome, selectedA.x, selectedA.y, breederName);
             school.push(fry);
-            
-            playTone(440, 0.3, 'triangle');
             
             selectedA = null;
             selectedB = null;
@@ -210,30 +216,31 @@
         }
 
         function hslStr(h, s, l, a = 1) {
-            return `hsla(${h % 360}, ${Math.min(100, Math.max(0, s))}%, ${Math.min(100, Math.max(0, l))}%, ${a})`;
+            return `hsla(${h % 360}, ${s}%, ${l}%, ${a})`;
         }
 
         let idCounter = 1;
 
         class AquariumBetta {
-            constructor(parentA = null, parentB = null, spawnX = null, spawnY = null, breederName = "Wild Lineage") {
+            constructor(parentA = null, parentB = null, spawnX = null, spawnY = null, breederName = "Wild Stock") {
                 this.id = idCounter++;
                 this.breeder = breederName;
                 this.x = spawnX || Math.random() * width;
                 this.y = spawnY || (0.2 + Math.random() * 0.6) * height;
                 
-                this.vx = (Math.random() - 0.5) * 1.5;
-                this.vy = (Math.random() - 0.5) * 0.4;
-                this.maxForce = 0.02;
-                this.perceptionRadius = 130;
+                this.vx = (Math.random() - 0.5) * 1.2;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.maxForce = 0.015;
                 this.facingRight = this.vx > 0;
 
+                // --- POLYGENIC CONTINUOUS DYNAMICS CHROMOSOMES ---
                 if (parentA && parentB) {
                     this.genome = {
                         hueBase:    this.cross(parentA.hueBase, parentB.hueBase, 360, true),
                         hueAccent:  this.cross(parentA.hueAccent, parentB.hueAccent, 360, true),
                         metallic:   this.cross(parentA.metallic, parentB.metallic, 1.0, false),
-                        finSize:    this.cross(parentA.finSize, parentB.finSize, 2.2, false),
+                        // Phenotypic fin length trait scaled from short (0.5) to huge longtail (2.5)
+                        finSize:    this.cross(parentA.finSize, parentB.finSize, 2.5, false),
                         tailSpread: this.cross(parentA.tailSpread, parentB.tailSpread, 2.5, false)
                     };
                 } else {
@@ -241,17 +248,18 @@
                         hueBase:    [Math.random() * 360, Math.random() * 360],
                         hueAccent:  [Math.random() * 360, Math.random() * 360],
                         metallic:   [Math.random(), Math.random()],
-                        finSize:    [0.8 + Math.random() * 0.8, 0.8 + Math.random() * 0.8],
-                        tailSpread: [1.0 + Math.random() * 1.2, 1.0 + Math.random() * 1.2]
+                        finSize:    [0.5 + Math.random() * 2.0, 0.5 + Math.random() * 2.0],
+                        tailSpread: [0.8 + Math.random() * 1.7, 0.8 + Math.random() * 1.7]
                     };
                 }
 
                 this.expressPhenotypes();
 
-                this.bodyLength = 10;
+                // Advanced high-fidelity physics tracking spine arrays
+                this.bodySegments = 12;
                 this.history = [];
-                for(let i = 0; i < 30; i++) {
-                    this.history.push({ x: this.x, y: this.y, vy: this.vy });
+                for(let i = 0; i < 45; i++) {
+                    this.history.push({ x: this.x, y: this.y, angle: 0 });
                 }
                 this.swimCycle = Math.random() * 100;
             }
@@ -260,9 +268,9 @@
                 const a = pairA[Math.floor(Math.random() * 2)];
                 const b = pairB[Math.floor(Math.random() * 2)];
                 let out = [a, b];
-                if (Math.random() < 0.05) {
+                if (Math.random() < 0.08) { // Mutation rate modifier
                     const idx = Math.floor(Math.random() * 2);
-                    out[idx] = circular ? (out[idx] + (Math.random() * 100 - 50) + 360) % range : Math.min(range, Math.max(0.1, out[idx] + (Math.random() * 0.3 - 0.15)));
+                    out[idx] = circular ? (out[idx] + (Math.random() * 80 - 40) + 360) % range : Math.min(range, Math.max(0.4, out[idx] + (Math.random() * 0.4 - 0.2)));
                 }
                 return out;
             }
@@ -277,30 +285,35 @@
                     spread: resolve(this.genome.tailSpread)
                 };
 
+                // Vibrant layered coloring architectures matching real Betta pigmentation
                 this.colorCore = hslStr(this.phenotype.hBase, 85, 45, 1);
-                this.colorFinInner = hslStr(this.phenotype.hBase, 90, 40, 0.4);
-                this.colorFinOuter = hslStr(this.phenotype.hAcc, 95, 52, 0.25);
-                this.colorGlint = hslStr(this.phenotype.hAcc, 100, 75, this.phenotype.metal * 0.7);
+                this.colorFinInner = hslStr(this.phenotype.hBase, 95, 42, 0.7);
+                this.colorFinOuter = hslStr(this.phenotype.hAcc, 95, 55, 0.4);
+                this.colorGlint = hslStr(this.phenotype.hAcc, 90, 75, this.phenotype.metal * 0.75);
                 
-                this.maxSpeed = 1.4 - (this.phenotype.fSize * 0.15);
+                // Physics drag calculations: bigger fins add inertia weight drag slowing maximum cruise potential
+                this.maxSpeed = 1.6 - (this.phenotype.fSize * 0.25);
             }
 
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
 
-                if (Math.abs(this.vx) > 0.1) this.facingRight = this.vx > 0;
+                if (Math.abs(this.vx) > 0.05) this.facingRight = this.vx > 0;
 
-                if (this.x < 40) { this.x = 40; this.vx *= -1; }
-                if (this.x > width - 40) { this.x = width - 40; this.vx *= -1; }
-                if (this.y < 50) { this.y = 50; this.vy *= -1; }
-                if (this.y > height - 50) { this.y = height - 50; this.vy *= -1; }
+                // Screen constraint boundaries
+                if (this.x < 60) { this.x = 60; this.vx *= -1; }
+                if (this.x > width - 60) { this.x = width - 60; this.vx *= -1; }
+                if (this.y < 80) { this.y = 80; this.vy *= -1; }
+                if (this.y > height - 80) { this.y = height - 80; this.vy *= -1; }
 
                 const speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
-                this.swimCycle += speed * 0.12 + 0.02;
+                this.swimCycle += speed * 0.08 + 0.015;
 
-                this.history.unshift({ x: this.x, y: this.y, vy: this.vy });
-                if (this.history.length > 35) this.history.pop();
+                // Inject forward positioning kinematics while generating trailing history nodes
+                let angle = Math.atan2(this.vy, this.vx);
+                this.history.unshift({ x: this.x, y: this.y, angle: angle });
+                if (this.history.length > 50) this.history.pop();
             }
 
             flock(school) {
@@ -310,7 +323,7 @@
                     const dX = other.x - this.x;
                     const dY = other.y - this.y;
                     const dist = Math.sqrt(dX*dX + dY*dY);
-                    if (dist < 70) {
+                    if (dist < 80) {
                         sepX -= dX / (dist + 0.001);
                         sepY -= dY / (dist + 0.001);
                         neighbors++;
@@ -318,7 +331,7 @@
                 }
 
                 if (neighbors > 0) {
-                    let sF = this.steer(sepX * 1.8, sepY * 1.2);
+                    let sF = this.steer(sepX * 1.5, sepY * 1.0);
                     this.vx += sF.x; this.vy += sF.y;
                 }
 
@@ -328,19 +341,19 @@
                         const d = Math.sqrt((food.x-this.x)**2 + (food.y-this.y)**2);
                         if (d < closestDist) { closestDist = d; closest = food; }
                     }
-                    if (closest && closestDist < 400) {
+                    if (closest && closestDist < 500) {
                         let fSeek = this.steer(closest.x - this.x, closest.y - this.y);
-                        this.vx += fSeek.x * 1.4; this.vy += fSeek.y * 1.4;
-                        if (closestDist < 15) {
+                        this.vx += fSeek.x * 1.2; this.vy += fSeek.y * 1.2;
+                        if (closestDist < 16) {
                             const idx = foods.indexOf(closest);
                             if (idx > -1) foods.splice(idx, 1);
                         }
                     }
                 }
 
-                if (Math.random() < 0.02) {
-                    this.vx += (Math.random() - 0.5) * 0.4;
-                    this.vy += (Math.random() - 0.5) * 0.15;
+                if (Math.random() < 0.015) {
+                    this.vx += (Math.random() - 0.5) * 0.3;
+                    this.vy += (Math.random() - 0.5) * 0.1;
                 }
 
                 const s = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
@@ -357,123 +370,192 @@
             draw() {
                 ctx.save();
                 
-                const getSeg = (idx) => this.history[Math.min(idx, this.history.length - 1)];
-                const sizeFactor = this.phenotype.fSize;
-                const tailLength = 45 * sizeFactor;
-                const dir = this.facingRight ? -1 : 1; 
-                const verticalLag = Math.sin(this.swimCycle) * 6 * sizeFactor;
+                const size = this.phenotype.fSize;
+                const spread = this.phenotype.spread;
+                const dir = this.facingRight ? 1 : -1;
 
-                const finGrad = ctx.createLinearGradient(this.x, this.y, this.x + (tailLength * dir), this.y + verticalLag);
-                finGrad.addColorStop(0, this.colorFinInner);
-                finGrad.addColorStop(0.6, this.colorFinOuter);
-                finGrad.addColorStop(1, 'rgba(0,0,0,0)');
-                ctx.fillStyle = finGrad;
-
+                // Selection Glow Rings Highlight
                 if (selectedA === this || selectedB === this) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#ccff33';
                     ctx.strokeStyle = '#ccff33';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath(); ctx.arc(this.x, this.y, 25, 0, Math.PI*2); ctx.stroke();
-                    ctx.font = '9px monospace';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(this.x, this.y, 35, 0, Math.PI*2); ctx.stroke();
+                    ctx.shadowBlur = 0;
+                    ctx.font = 'bold 9px sans-serif';
                     ctx.fillStyle = '#ccff33';
-                    ctx.fillText(selectedA === this ? 'Parent A' : 'Parent B', this.x - 22, this.y - 32);
+                    ctx.fillText(selectedA === this ? 'PARENT A' : 'PARENT B', this.x - 24, this.y - 45);
                 }
 
-                // 1. ANTERIOR DORSAL VEIL (Side-View Crest)
-                ctx.beginPath();
-                ctx.moveTo(this.x - (4 * dir), this.y - 4);
-                ctx.bezierCurveTo(
-                    this.x + (15 * dir), this.y - (20 * sizeFactor),
-                    this.x + (35 * dir), this.y - (25 * sizeFactor) + verticalLag,
-                    this.x + (20 * dir), this.y
-                );
-                ctx.closePath(); ctx.fill();
+                // HIGH-FIDELITY MULTI-RAY DRAG FIN RENDERING PIPELINE
+                const drawRibbonFin = (historyStartIndex, rayCount, lengthScale, widthRange, isDorsal) => {
+                    ctx.save();
+                    ctx.globalCompositeOperation = "screen";
 
-                // 2. VENTRAL BANNER FIN (Lower hanging curtain)
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y + 3);
-                ctx.bezierCurveTo(
-                    this.x + (10 * dir), this.y + (20 * sizeFactor),
-                    this.x + (35 * dir), this.y + (22 * sizeFactor) + verticalLag,
-                    this.x + (25 * dir), this.y + 4
-                );
-                ctx.closePath(); ctx.fill();
+                    for (let r = 0; r < rayCount; r++) {
+                        const rayRatio = r / (rayCount - 1);
+                        const historyIndex = Math.floor(historyStartIndex + rayRatio * 14);
+                        const node = this.history[Math.min(historyIndex, this.history.length - 1)];
+                        
+                        // Physics sine waves running down individual fin rays mimicking fabric currents
+                        const wave = Math.sin(this.swimCycle - (historyIndex * 0.25)) * (8 * size);
+                        const angleOffset = (rayRatio - 0.5) * widthRange * spread;
+                        
+                        const targetAngle = node.angle + Math.PI + (isDorsal ? -0.4 : 0.4) + angleOffset;
+                        const finLen = 45 * size * lengthScale * (0.8 + Math.sin(rayRatio * Math.PI) * 0.4);
 
-                // 3. MAIN CAUDAL TAIL DRAG VEIL (Graceful flow physics)
-                ctx.beginPath();
-                ctx.moveTo(this.x + (12 * dir), this.y);
-                const spreadY = 22 * this.phenotype.spread;
-                ctx.bezierCurveTo(
-                    this.x + (30 * dir), this.y - spreadY + (verticalLag * 0.5),
-                    this.x + (tailLength * dir), this.y - (spreadY * 0.5) + verticalLag,
-                    this.x + (tailLength * dir), this.y + verticalLag
-                );
-                ctx.bezierCurveTo(
-                    this.x + (tailLength * dir), this.y + (spreadY * 0.5) + verticalLag,
-                    this.x + (30 * dir), this.y + spreadY + (verticalLag * 0.5),
-                    this.x + (12 * dir), this.y + 2
-                );
-                ctx.closePath(); ctx.fill();
+                        const endX = node.x + Math.cos(targetAngle) * finLen;
+                        const endY = node.y + Math.sin(targetAngle) * finLen + wave;
 
-                // 4. METALLIC SHADER MASK
-                if (this.phenotype.metal > 0.35) {
-                    ctx.fillStyle = this.colorGlint;
-                    ctx.beginPath();
-                    ctx.ellipse(this.x + (4 * dir), this.y + 1, 8, 4, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+                        const grad = ctx.createLinearGradient(node.x, node.y, endX, endY);
+                        grad.addColorStop(0, this.colorFinInner);
+                        grad.addColorStop(0.4, this.colorFinOuter);
+                        grad.addColorStop(1, 'rgba(0,0,0,0)');
+                        
+                        ctx.strokeStyle = grad;
+                        ctx.lineWidth = 3.5 * (1 + rayRatio * 0.5);
+                        ctx.lineCap = "round";
 
-                // 5. SOLID STRUCTURAL ANATOMY TAPER
-                ctx.fillStyle = this.colorCore;
-                for (let i = 0; i < this.bodyLength; i++) {
-                    const seg = getSeg(i * 2);
-                    const thickness = (this.bodyLength - i) * 0.9;
-                    const drawX = this.x + (i * 2.2 * dir);
-                    const drawY = seg.y;
+                        ctx.beginPath();
+                        ctx.moveTo(node.x, node.y);
+                        ctx.quadraticCurveTo(
+                            node.x + Math.cos(targetAngle) * (finLen * 0.4), 
+                            node.y + Math.sin(targetAngle) * (finLen * 0.4) + wave, 
+                            endX, endY
+                        );
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                };
+
+                // 1. DORSAL HIGH-SPREAD RIBBON FIN
+                drawRibbonFin(4, 14, 1.2, 0.9, true);
+
+                // 2. VENTRAL EXTENDED CURTAIN FIN
+                drawRibbonFin(2, 16, 1.1, 0.8, false);
+
+                // 3. CAUDAL HALFMOON DRAG TAIL
+                ctx.save();
+                ctx.globalCompositeOperation = "screen";
+                const tailRays = 24;
+                for (let r = 0; r < tailRays; r++) {
+                    const rayRatio = r / (tailRays - 1);
+                    const historyIndex = Math.floor(10 + rayRatio * 12);
+                    const node = this.history[Math.min(historyIndex, this.history.length - 1)];
                     
+                    const wave = Math.sin(this.swimCycle - (historyIndex * 0.3)) * (12 * size);
+                    const spreadAngle = (rayRatio - 0.5) * (1.8 * spread); 
+                    const tAngle = node.angle + Math.PI + spreadAngle;
+                    const cLen = 65 * size * (0.9 + Math.sin(rayRatio * Math.PI) * 0.25);
+
+                    const endX = node.x + Math.cos(tAngle) * cLen;
+                    const endY = node.y + Math.sin(tAngle) * cLen + wave;
+
+                    const grad = ctx.createLinearGradient(node.x, node.y, endX, endY);
+                    grad.addColorStop(0, this.colorFinInner);
+                    grad.addColorStop(0.5, this.colorFinOuter);
+                    grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+                    ctx.strokeStyle = grad;
+                    ctx.lineWidth = 4;
+                    ctx.lineCap = "round";
                     ctx.beginPath();
-                    ctx.arc(drawX, drawY, thickness, 0, Math.PI * 2);
+                    ctx.moveTo(node.x, node.y);
+                    ctx.quadraticCurveTo(
+                        node.x + Math.cos(tAngle) * (cLen * 0.5),
+                        node.y + Math.sin(tAngle) * (cLen * 0.5) + wave,
+                        endX, endY
+                    );
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // 4. ANATOMICAL FLESHY BODY SPINDLE TAPER
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = this.colorCore;
+                
+                for (let i = 0; i < this.bodySegments; i++) {
+                    const node = this.history[Math.min(i * 2, this.history.length - 1)];
+                    const t = (1 - (i / this.bodySegments));
+                    const thickness = (8 * t) + 1.2;
+
+                    // Shiny metallic sheen mask blending down core segmentations
+                    if (this.phenotype.metal > 0.35 && i < 6) {
+                        ctx.fillStyle = this.colorGlint;
+                    } else {
+                        ctx.fillStyle = this.colorCore;
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, thickness, 0, Math.PI * 2);
                     ctx.fill();
                 }
+                ctx.shadowBlur = 0;
 
-                // Pectoral fin overlay
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.beginPath(); 
-                ctx.ellipse(this.x - (2 * dir), this.y + 2, 4, 6, 0.3 * dir, 0, Math.PI*2); 
+                // 5. PECTORAL SILK FLAPS & OCULAR ELEMENTS
+                const headNode = this.history[0];
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.beginPath();
+                ctx.ellipse(headNode.x, headNode.y + 3, 5, 8, (dir * 0.4), 0, Math.PI * 2);
                 ctx.fill();
 
-                // Ocular focus point
+                // Clear eye profile elements
                 ctx.fillStyle = '#ffffff';
-                ctx.beginPath(); ctx.arc(this.x - (7 * dir), this.y - 1, 1, 0, Math.PI*2); ctx.fill();
-                
-                // Display breeder tag under fish profile
-                ctx.font = '8px monospace';
-                ctx.fillStyle = 'rgba(255,255,255,0.35)';
-                ctx.fillText(`ID:${this.id} By: ${this.breeder}`, this.x - 25, this.y + 18);
+                ctx.beginPath(); ctx.arc(headNode.x + (6 * dir), headNode.y - 1, 2.2, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#020b14';
+                ctx.beginPath(); ctx.arc(headNode.x + (6.8 * dir), headNode.y - 1, 1.2, 0, Math.PI * 2); ctx.fill();
+
+                // Dynamic UI metadata tags rendering underneath fish body
+                ctx.font = '500 9px monospace';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.fillText(`ID:${this.id} By: ${this.breeder}`, headNode.x - 30, headNode.y + 24);
 
                 ctx.restore();
             }
         }
 
-        // Setup primary stock population
-        for(let i = 0; i < 10; i++) { school.push(new AquariumBetta()); }
+        // Initialize primary starter population
+        for(let i = 0; i < 8; i++) { school.push(new AquariumBetta()); }
 
         function engineLoop() {
-            ctx.fillStyle = 'rgba(1, 10, 24, 0.25)';
+            // Smooth gradient watercolor wash
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+            bgGrad.addColorStop(0, '#041529');
+            bgGrad.addColorStop(0.6, '#020d1a');
+            bgGrad.addColorStop(1, '#01070e');
+            ctx.fillStyle = bgGrad;
             ctx.fillRect(0, 0, width, height);
 
             popCountEl.innerText = `Bettas Active: ${school.length}`;
 
+            // Render background aesthetic floating details
+            ctx.fillStyle = 'rgba(0, 180, 216, 0.15)';
+            particles.forEach(p => {
+                p.phase += 0.01;
+                p.y -= p.speed;
+                const shiftX = Math.sin(p.phase) * 0.3;
+                p.x += shiftX;
+
+                if(p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+            });
+
+            // Process food coordinates
             for (let i = foods.length - 1; i >= 0; i--) {
                 let f = foods[i];
                 f.y += f.vy;
-                if (f.y > height - 20) {
+                if (f.y > height - 30) {
                     foods.splice(i, 1);
                     continue;
                 }
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#ccff33';
                 ctx.fillStyle = '#ccff33';
                 ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0;
             }
 
+            // Update entities loop updates
             school.forEach(betta => {
                 betta.flock(school);
                 betta.update();
