@@ -3,217 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>24/7 Bird's-Eye Marine Ecosystem</title>
+    <title>Genetic Betta Splendens Laboratory</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #020710; font-family: monospace; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #011125;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            transition: background 2s ease-in-out;
-        }
-
-        canvas {
+        .genetics-hud {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
-
-        .aquarium-hud {
-            position: absolute;
-            top: 30px;
-            left: 30px;
+            top: 25px;
+            left: 25px;
             z-index: 10;
-            color: rgba(255, 255, 255, 0.85);
+            color: #4cc9f0;
+            background: rgba(2, 8, 20, 0.9);
+            padding: 15px;
+            border: 1px solid #7209b7;
+            border-radius: 6px;
             pointer-events: none;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 20px rgba(114, 9, 183, 0.25);
         }
-
-        .time-stream {
-            font-size: 1.75rem;
-            font-weight: 300;
-            letter-spacing: 2px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .eco-status {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-top: 6px;
-            opacity: 0.5;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .eco-status::before {
-            content: "";
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: #00f5d4;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #00f5d4;
-        }
-
+        .hud-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; color: #f72585;}
+        .hud-stat { font-size: 0.85rem; color: #fff; opacity: 0.85; margin-top: 4px; }
+        
         .interaction-tip {
             position: absolute;
-            bottom: 30px;
+            bottom: 25px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.8rem;
-            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.75rem;
             pointer-events: none;
             text-transform: uppercase;
+            letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
 
-    <div class="aquarium-hud">
-        <div class="time-stream" id="clock-widget">00:00:00</div>
-        <div class="eco-status" id="eco-label">Syncing Marine Cycle...</div>
+    <div class="genetics-hud">
+        <div class="hud-title">🧬 Betta Genetics Lab</div>
+        <div class="hud-stat" id="pop-count">Population: 0</div>
+        <div class="hud-stat" id="mutation-count">Mutated Lineages: 0</div>
     </div>
 
-    <div class="interaction-tip">Click to drop food & generate ripples</div>
+    <div class="interaction-tip">Click to add premium pellets. Bettas breed upon contact when mature.</div>
 
     <canvas id="aquarium-canvas"></canvas>
 
     <script>
         const canvas = document.getElementById('aquarium-canvas');
         const ctx = canvas.getContext('2d');
-        const clockEl = document.getElementById('clock-widget');
-        const statusEl = document.getElementById('eco-label');
+        const popCountEl = document.getElementById('pop-count');
+        const mutCountEl = document.getElementById('mutation-count');
 
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
 
+        const school = [];
         const foods = [];
         const ripples = [];
-        let currentTheme = 'afternoon';
+        
+        let totalMutations = 0;
         let audioCtx = null;
+        const MUTATION_RATE = 0.025; // 2.5% structural copy stress mutation rate
 
         window.addEventListener('resize', () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         });
 
-        function playBubbleSound() {
+        function playSynthesisTone(freq, duration, type = 'sine') {
             try {
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (audioCtx.state === 'suspended') audioCtx.resume();
-
                 const osc = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-
-                osc.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(120, audioCtx.currentTime); 
-                osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.15);
-
-                gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.15);
-            } catch (e) { console.log(e); }
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                if(type === 'triangle') osc.frequency.exponentialRampToValueAtTime(freq * 1.4, audioCtx.currentTime + duration);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e){}
         }
 
         window.addEventListener('click', (e) => {
-            foods.push({ x: e.clientX, y: e.clientY, radius: 4.5, active: true });
-            ripples.push({ x: e.clientX, y: e.clientY, radius: 2, maxRadius: 70, alpha: 0.5, speed: 2 });
-            playBubbleSound();
+            foods.push({ x: e.clientX, y: e.clientY, radius: 4 });
+            ripples.push({ x: e.clientX, y: e.clientY, radius: 2, maxRadius: 60, alpha: 0.3, color: '76, 201, 240' });
+            playSynthesisTone(180, 0.12, 'sine');
         });
 
-        const THEMES = {
-            morning: { bg: ['#0f4c5c', '#001d25'], fishColor: '#e36414', finColor: 'rgba(230, 92, 0, 0.4)', label: 'Morning Estuary' },
-            afternoon: { bg: ['#006d77', '#003554'], fishColor: '#ffb703', finColor: 'rgba(255, 183, 3, 0.4)', label: 'Sunlit Reef Shallows' },
-            evening: { bg: ['#3d348b', '#13001f'], fishColor: '#f72585', finColor: 'rgba(247, 37, 133, 0.4)', label: 'Twilight Current' },
-            night: { bg: ['#050c1a', '#000209'], fishColor: '#7209b7', finColor: 'rgba(114, 9, 183, 0.3)', label: 'Bioluminescent Dynamic Deep' }
+        // Allele Matrix Mapping for Betta Expressions
+        const GENE_EXPRESSION = {
+            pigment: {
+                0: { core: '#f72585', fin: 'rgba(247, 37, 133, 0.25)' },  // Orchid Magenta
+                1: { core: '#3a0ca3', fin: 'rgba(58, 12, 163, 0.25)' },   // Royal Blue
+                2: { core: '#ffb703', fin: 'rgba(255, 183, 3, 0.25)' },   // Golden Koi
+                3: { core: '#7209b7', fin: 'rgba(114, 9, 183, 0.35)' }    // MUTANT: Neon Dragon Violet
+            },
+            tailShape: {
+                0: 'veiltail',   // Long cascading asymmetric draping
+                1: 'halfmoon',   // Expansive 180-degree fan spread
+                2: 'crowntail'   // MUTANT: Spiked rib extensions
+            }
         };
 
-        function updateEcosystemTime() {
-            const now = new Date();
-            const hours = now.getHours();
-            clockEl.innerText = now.toTimeString().split(' ')[0];
-
-            let activeKey = 'afternoon';
-            if (hours >= 6 && hours < 12) activeKey = 'morning';
-            else if (hours >= 12 && hours < 18) activeKey = 'afternoon';
-            else if (hours >= 18 && hours < 22) activeKey = 'evening';
-            else activeKey = 'night';
-
-            currentTheme = activeKey;
-            statusEl.innerText = `Ecosystem: ${THEMES[activeKey].label}`;
-        }
-
-        // --- SEGMENTED PHYSICS FISH CLASS (TOP-DOWN VIEW) ---
-        class TopDownFish {
-            constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
+        class BettaFish {
+            constructor(parentA_Genetics = null, parentB_Genetics = null, spawnX = null, spawnY = null) {
+                this.x = spawnX || Math.random() * width;
+                this.y = spawnY || Math.random() * height;
                 
                 const angle = Math.random() * Math.PI * 2;
-                this.vx = Math.cos(angle) * 1.5;
-                this.vy = Math.sin(angle) * 1.5;
+                this.vx = Math.cos(angle) * 1.0;
+                this.vy = Math.sin(angle) * 1.0;
+                this.maxForce = 0.025;
+                this.perceptionRadius = 110;
 
-                this.maxSpeed = 1.8;
-                this.maxForce = 0.03;
-                this.perceptionRadius = 90;
+                // Diploid Genomics Engine
+                this.genome = {
+                    pigment: parentA_Genetics ? this.recombine(parentA_Genetics.pigment, parentB_Genetics.pigment, 3) : [Math.floor(Math.random()*3), Math.floor(Math.random()*3)],
+                    tailShape: parentA_Genetics ? this.recombine(parentA_Genetics.tailShape, parentB_Genetics.tailShape, 2) : [Math.floor(Math.random()*2), Math.floor(Math.random()*2)],
+                    finGrowth: parentA_Genetics ? this.recombine(parentA_Genetics.finGrowth, parentB_Genetics.finGrowth, 4) : [Math.floor(Math.random()*3)+3, Math.floor(Math.random()*3)+3]
+                };
 
-                // Physics Body Customizations
-                this.bodyLength = 9; // Number of joint segments
-                this.segmentSpacing = 5; // Distance between bones
-                this.history = []; // Array to track prior locations for spine physics
-                
-                // Initialize physics backbone array
-                for(let i = 0; i < this.bodyLength; i++) {
-                    this.history.push({ x: this.x, y: this.y });
+                this.expressPhenotypes();
+
+                // Advanced Kinematic Backbone (Longer for graceful Betta articulation)
+                this.bodyLength = 12;
+                this.segmentSpacing = 4.0;
+                this.history = [];
+                for(let i = 0; i < this.bodyLength * 3; i++) { // Deeper tail log array for fin physics lag
+                    this.history.push({ x: this.x, y: this.y, angle: angle });
                 }
 
-                // Aesthetic scaling variations
-                this.sizeScale = Math.random() * 0.4 + 0.8; 
-                this.swimCycle = Math.random() * 100; // Offset animation loops
+                this.swimCycle = Math.random() * 100;
+                this.reproductionCooldown = parentA_Genetics ? 500 : 120;
             }
 
-            edges() {
-                const pad = 50;
+            recombine(geneA, geneB, mutantIndex) {
+                const alleleA = geneA[Math.floor(Math.random() * 2)];
+                const alleleB = geneB[Math.floor(Math.random() * 2)];
+                let pair = [alleleA, alleleB];
+                if (Math.random() < MUTATION_RATE) {
+                    pair[Math.floor(Math.random() * 2)] = mutantIndex;
+                    totalMutations++;
+                    ripples.push({ x: this.x, y: this.y, radius: 4, maxRadius: 150, alpha: 0.75, color: '247, 37, 133' });
+                    playSynthesisTone(740, 0.35, 'triangle');
+                }
+                return pair;
+            }
+
+            expressPhenotypes() {
+                const getDominant = (pair) => Math.max(pair[0], pair[1]);
+                this.phenotype = {
+                    colors: GENE_EXPRESSION.pigment[getDominant(this.genome.pigment)],
+                    tail: GENE_EXPRESSION.tailShape[getDominant(this.genome.tailShape)],
+                    finSize: (this.genome.finGrowth[0] + this.genome.finGrowth[1]) * 0.18
+                };
+                this.maxSpeed = 1.6;
+            }
+
+            update() {
+                if(this.reproductionCooldown > 0) this.reproductionCooldown--;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed > this.maxSpeed) {
+                    this.vx = (this.vx / speed) * this.maxSpeed;
+                    this.vy = (this.vy / speed) * this.maxSpeed;
+                }
+
+                const pad = 60;
                 if (this.x < -pad) this.x = width + pad;
                 if (this.x > width + pad) this.x = -pad;
                 if (this.y < -pad) this.y = height + pad;
                 if (this.y > height + pad) this.y = -pad;
-            }
 
-            steer(tX, tY) {
-                let dX = tX - this.vx;
-                let dY = tY - this.vy;
-                const dist = Math.sqrt(dX * dX + dY * dY);
-                if (dist > this.maxForce) {
-                    dX = (dX / dist) * this.maxForce;
-                    dY = (dY / dist) * this.maxForce;
-                }
-                return { x: dX, y: dY };
+                // Push kinematic translation array
+                this.swimCycle += speed * 0.08;
+                const headAngle = Math.atan2(this.vy, this.vx);
+                
+                this.history.unshift({ x: this.x, y: this.y, angle: headAngle });
+                if (this.history.length > 40) this.history.pop();
             }
 
             flock(school) {
-                let sepX = 0, sepY = 0, aliX = 0, aliY = 0, cohX = 0, cohY = 0;
-                let neighbors = 0;
+                let sepX = 0, sepY = 0, aliX = 0, aliY = 0, cohX = 0, cohY = 0, neighbors = 0;
 
                 for (let other of school) {
                     if (other === this) continue;
@@ -224,186 +204,168 @@
                     if (dist < this.perceptionRadius) {
                         sepX -= dX / (dist + 0.001);
                         sepY -= dY / (dist + 0.001);
-                        aliX += other.vx;
-                        aliY += other.vy;
-                        cohX += other.x;
-                        cohY += other.y;
+                        aliX += other.vx; aliY += other.vy;
+                        cohX += other.x; cohY += other.y;
                         neighbors++;
+                    }
+
+                    // Breeding engagement overlap check
+                    if (dist < 20 && this.reproductionCooldown === 0 && other.reproductionCooldown === 0 && school.length < 60) {
+                        this.reproductionCooldown = 500;
+                        other.reproductionCooldown = 500;
+                        const fry = new BettaFish(this.genome, other.genome, this.x, this.y);
+                        school.push(fry);
+                        ripples.push({ x: this.x, y: this.y, radius: 5, maxRadius: 75, alpha: 0.6, color: '255, 230, 0' });
+                        playSynthesisTone(392, 0.25, 'sine');
                     }
                 }
 
                 if (neighbors > 0) {
-                    aliX /= neighbors; aliY /= neighbors;
-                    cohX /= neighbors; cohY /= neighbors;
-
-                    const cohesionForce = this.steer(cohX - this.x, cohY - this.y);
-                    const separationForce = this.steer(sepX * 2.5, sepY * 2.5);
-                    const alignmentForce = this.steer(aliX, aliY);
-
-                    this.vx += separationForce.x * 1.5 + alignmentForce.x * 0.8 + cohesionForce.x * 0.8;
-                    this.vy += separationForce.y * 1.5 + alignmentForce.y * 0.8 + cohesionForce.y * 0.8;
+                    aliX /= neighbors; aliY /= neighbors; cohX /= neighbors; cohY /= neighbors;
+                    let sF = this.steer(sepX * 2.0, sepY * 2.0);
+                    let aF = this.steer(aliX, aliY);
+                    let cF = this.steer(cohX - this.x, cohY - this.y);
+                    this.vx += sF.x * 1.2 + aF.x * 0.6 + cF.x * 0.5;
+                    this.vy += sF.y * 1.2 + aF.y * 0.6 + cF.y * 0.5;
                 }
 
-                // Food Target Intercept Logic
                 if (foods.length > 0) {
-                    let closestFood = null;
-                    let closestDist = Infinity;
-
+                    let closestFood = null; let closestDist = Infinity;
                     for (let food of foods) {
-                        const fDX = food.x - this.x;
-                        const fDY = food.y - this.y;
-                        const fDist = Math.sqrt(fDX * fDX + fDY * fDY);
-                        if (fDist < closestDist && fDist < 300) {
-                            closestDist = fDist;
-                            closestFood = food;
-                        }
+                        const fDist = Math.sqrt((food.x-this.x)**2 + (food.y-this.y)**2);
+                        if (fDist < closestDist) { closestDist = fDist; closestFood = food; }
                     }
-
-                    if (closestFood) {
-                        const foodSeek = this.steer(closestFood.x - this.x, closestFood.y - this.y);
-                        this.vx += foodSeek.x * 2.0;
-                        this.vy += foodSeek.y * 2.0;
-
-                        if (closestDist < 15) {
-                            const index = foods.indexOf(closestFood);
-                            if (index > -1) foods.splice(index, 1);
+                    if (closestFood && closestDist < 300) {
+                        let fSeek = this.steer(closestFood.x - this.x, closestFood.y - this.y);
+                        this.vx += fSeek.x * 1.6; this.vy += fSeek.y * 1.6;
+                        if (closestDist < 12) {
+                            const idx = foods.indexOf(closestFood);
+                            if (idx > -1) foods.splice(idx, 1);
                         }
                     }
                 }
             }
 
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-
-                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (speed > this.maxSpeed) {
-                    this.vx = (this.vx / speed) * this.maxSpeed;
-                    this.vy = (this.vy / speed) * this.maxSpeed;
-                }
-                this.edges();
-
-                // --- SPINE SEGMENTATION KINETIC PHYSICS ---
-                this.swimCycle += speed * 0.12;
-                
-                // Head point acts as leader index
-                this.history[0].x = this.x;
-                this.history[0].y = this.y;
-
-                // Procedural kinematics loop pushing positions down the backbone joints
-                for (let i = 1; i < this.bodyLength; i++) {
-                    const prev = this.history[i - 1];
-                    const curr = this.history[i];
-                    
-                    const dx = curr.x - prev.x;
-                    const dy = curr.y - prev.y;
-                    const distance = Math.sqrt(dx * dx + dx * dy);
-                    const heading = Math.atan2(dy, dx);
-
-                    // Add lateral undulation wave that decreases in size towards the nose
-                    const wave = Math.sin(this.swimCycle - (i * 0.5)) * (i * 0.35) * (speed / this.maxSpeed);
-
-                    curr.x = prev.x + Math.cos(heading) * this.segmentSpacing;
-                    curr.y = prev.y + Math.sin(heading) * this.segmentSpacing + wave;
-                }
+            steer(tX, tY) {
+                let dX = tX - this.vx; let dY = tY - this.vy;
+                const d = Math.sqrt(dX * dX + dY * dY);
+                if (d > this.maxForce) { dX = (dX / d) * this.maxForce; dY = (dY / d) * this.maxForce; }
+                return { x: dX, y: dY };
             }
 
             draw() {
-                const currentColors = THEMES[currentTheme];
                 ctx.save();
                 
-                ctx.shadowBlur = currentTheme === 'night' ? 10 : 0;
-                ctx.shadowColor = currentColors.fishColor;
+                // Extract historical lag segments for fin tracing
+                const getSegment = (index) => this.history[Math.min(index, this.history.length - 1)];
+                
+                const head = getSegment(0);
+                const thorax = getSegment(4);
+                const abdomen = getSegment(10);
+                const baseTail = getSegment(18);
+                const tipTail = getSegment(28);
 
-                // Render dynamic translucent fins
-                ctx.fillStyle = currentColors.finColor;
-                const head = this.history[0];
-                const mid = this.history[Math.floor(this.bodyLength / 3)];
-                const tail = this.history[this.bodyLength - 1];
-                const angle = Math.atan2(this.vy, this.vx);
-
-                // Side pectoral fins
+                // 1. EXTENDED PECTORAL FINS (Side Veils)
+                ctx.fillStyle = this.phenotype.colors.fin;
                 ctx.beginPath();
-                ctx.arc(mid.x, mid.y, 8 * this.sizeScale, angle - Math.PI/2, angle + Math.PI/2);
+                ctx.arc(thorax.x, thorax.y, 14 * this.phenotype.finSize, thorax.angle - Math.PI/1.5, thorax.angle + Math.PI/1.5);
                 ctx.fill();
 
-                // Tail Fin structure
+                // 2. MAIN ARTISTIC TAIL FAN DRAW (Morphed by Genotype)
                 ctx.beginPath();
-                ctx.moveTo(tail.x, tail.y);
-                ctx.lineTo(tail.x - Math.cos(angle + 0.5) * 14 * this.sizeScale, tail.y - Math.sin(angle + 0.5) * 14 * this.sizeScale);
-                ctx.lineTo(tail.x - Math.cos(angle - 0.5) * 14 * this.sizeScale, tail.y - Math.sin(angle - 0.5) * 14 * this.sizeScale);
+                ctx.moveTo(abdomen.x, abdomen.y);
+                
+                const waveOffset = Math.sin(this.swimCycle) * 0.2;
+                const leftAngle = baseTail.angle + Math.PI / 2 + waveOffset;
+                const rightAngle = baseTail.angle - Math.PI / 2 + waveOffset;
+                const spread = this.phenotype.tail === 'halfmoon' ? 2.6 : 1.6;
+                const lengthMod = this.phenotype.tail === 'veiltail' ? 45 : 32;
+
+                if (this.phenotype.tail === 'crowntail') {
+                    // Spiked Ray Geometry loop
+                    for (let j = 0; j < 8; j++) {
+                        const stepAngle = baseTail.angle + Math.PI + (j - 3.5) * 0.4;
+                        ctx.lineTo(tipTail.x + Math.cos(stepAngle) * lengthMod * this.phenotype.finSize, 
+                                   tipTail.y + Math.sin(stepAngle) * lengthMod * this.phenotype.finSize);
+                        ctx.lineTo(baseTail.x, baseTail.y);
+                    }
+                } else {
+                    // Graceful Fluid Bezier Curve Curtains
+                    ctx.bezierCurveTo(
+                        baseTail.x + Math.cos(leftAngle) * (lengthMod * spread) * this.phenotype.finSize,
+                        baseTail.y + Math.sin(leftAngle) * (lengthMod * spread) * this.phenotype.finSize,
+                        tipTail.x + Math.cos(baseTail.angle + Math.PI) * (lengthMod * 2) * this.phenotype.finSize,
+                        tipTail.y + Math.sin(baseTail.angle + Math.PI) * (lengthMod * 2) * this.phenotype.finSize,
+                        abdomen.x + Math.cos(rightAngle) * (lengthMod * spread) * this.phenotype.finSize,
+                        abdomen.y + Math.sin(rightAngle) * (lengthMod * spread) * this.phenotype.finSize
+                    );
+                }
                 ctx.closePath();
                 ctx.fill();
 
-                // Draw main tapered organic body profile using bone nodes
-                ctx.fillStyle = currentColors.fishColor;
+                // 3. BRAIDED DORSAL VEIL (Spine Draped Ridge Fin)
+                ctx.beginPath();
+                ctx.moveTo(thorax.x, thorax.y);
+                ctx.quadraticCurveTo(abdomen.x + Math.cos(leftAngle)*18, abdomen.y + Math.sin(leftAngle)*18, baseTail.x, baseTail.y);
+                ctx.lineTo(abdomen.x, abdomen.y);
+                ctx.closePath();
+                ctx.fill();
+
+                // 4. SOLID ORGANIC TAPERED BODY CONTOUR
+                ctx.fillStyle = this.phenotype.colors.core;
                 for (let i = 0; i < this.bodyLength; i++) {
-                    const segment = this.history[i];
-                    // Dynamic thickness rendering (tapering down towards tail)
-                    const radius = (this.bodyLength - i) * 1.1 * this.sizeScale;
-                    
+                    const seg = getSegment(i * 2);
+                    const thickness = (this.bodyLength - i) * 1.35;
                     ctx.beginPath();
-                    ctx.arc(segment.x, segment.y, radius, 0, Math.PI * 2);
+                    ctx.arc(seg.x, seg.y, thickness, 0, Math.PI * 2);
                     ctx.fill();
                 }
+
+                // Decorative Crown highlights on eyes
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(head.x + Math.cos(head.angle + 0.6)*4, head.y + Math.sin(head.angle + 0.6)*4, 1, 0, Math.PI*2);
+                ctx.arc(head.x + Math.cos(head.angle - 0.6)*4, head.y + Math.sin(head.angle - 0.6)*4, 1, 0, Math.PI*2);
+                ctx.fill();
 
                 ctx.restore();
             }
         }
 
-        const school = Array.from({ length: 45 }, () => new TopDownFish());
+        // Initialize Ancestral Laboratory Population Stock
+        for(let i=0; i<18; i++) { school.push(new BettaFish()); }
 
-        function mainLoop() {
-            const activeBg = THEMES[currentTheme].bg;
-            const gradient = ctx.createLinearGradient(0, 0, width, height);
-            gradient.addColorStop(0, activeBg[0]);
-            gradient.addColorStop(1, activeBg[1]);
-            ctx.fillStyle = gradient;
+        function engineLoop() {
+            ctx.fillStyle = 'rgba(1, 5, 13, 0.28)'; // Soft watercolor alpha decay trail preservation
             ctx.fillRect(0, 0, width, height);
 
-            // Update & Render Water Surface Ripple Lines
+            popCountEl.innerText = `Bettas Active: ${school.length}`;
+            mutCountEl.innerText = `Mutant Allele Expressors: ${totalMutations}`;
+
+            // Render Dynamic Ripples
             for (let i = ripples.length - 1; i >= 0; i--) {
-                let r = ripples[i];
-                r.radius += r.speed;
-                r.alpha -= r.speed / r.maxRadius;
-
-                if (r.alpha <= 0) {
-                    ripples.splice(i, 1);
-                    continue;
-                }
-
-                ctx.strokeStyle = `rgba(255, 255, 255, ${r.alpha})`;
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
-                ctx.stroke();
+                let r = ripples[i]; r.radius += 2.0; r.alpha -= 0.015;
+                if (r.alpha <= 0) { ripples.splice(i, 1); continue; }
+                ctx.strokeStyle = `rgba(${r.color}, ${r.alpha})`;
+                ctx.lineWidth = 1.0; ctx.beginPath();
+                ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2); ctx.stroke();
             }
 
-            // Render Floating Food Flakes
+            // Draw Pellets
             ctx.fillStyle = '#ffb703';
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = '#ffb703';
-            for (let i = foods.length - 1; i >= 0; i--) {
-                let f = foods[i];
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.shadowBlur = 0;
+            for (let f of foods) { ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2); ctx.fill(); }
 
-            // Compute Fish Updates & Spine Mechanics
-            school.forEach(fish => {
-                fish.flock(school);
-                fish.update();
-                fish.draw();
+            // Compute AI Boid Steer, Recombination Paths, and Fin Damping matrices
+            school.forEach(betta => {
+                betta.flock(school);
+                betta.update();
+                betta.draw();
             });
 
-            requestAnimationFrame(mainLoop);
+            requestAnimationFrame(engineLoop);
         }
 
-        setInterval(updateEcosystemTime, 1000);
-        updateEcosystemTime();
-        mainLoop();
+        engineLoop();
     </script>
 </body>
 </html>
