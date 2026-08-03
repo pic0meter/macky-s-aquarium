@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hey You... ❤️</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ffe5ec, #ffc2d1);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 {
+            color: #ff477e;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #6c757d;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+        .gif-container img {
+            width: 150px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            position: relative;
+            height: 50px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: bold;
+        }
+        #yesBtn {
+            background-color: #ff477e;
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 71, 126, 0.4);
+        }
+        #yesBtn:hover {
+            transform: scale(1.1);
+        }
+        #noBtn {
+            background-color: #6c757d;
+            color: white;
+            position: absolute;
+            right: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="quiz-stage">
+            <h1 id="headline">I have a secret... 🫣</h1>
+            <div class="gif-container">
+                <!-- Replace with any cute GIF link you like -->
+                <img id="main-gif" src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbWtoZ2d5d3B5Z3RkZ3RkZ3RkZ3RkZ3RkZ3RkZ3RkZ3RkZ3Rk&ep_v1_gifs_search/2gif/giphy.gif" alt="Cute gif">
+            </div>
+            <p id="message">I've really enjoyed spending time with you lately, and I've developed a massive crush on you. Will you go out on a date with me? 🌹</p>
+            
+            <div class="buttons">
+                <button id="yesBtn" onclick="celebrate()">Yes! 🥰</button>
+                <button id="noBtn" onmouseover="moveButton()">No 😢</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function moveButton() {
+            const noBtn = document.getElementById('noBtn');
+            // Move the "No" button randomly so they can't click it easily 😉
+            const x = Math.random() * (window.innerWidth - noBtn.offsetWidth - 50);
+            const y = Math.random() * (window.innerHeight - noBtn.offsetHeight - 50);
+            
+            noBtn.style.position = 'absolute';
+            noBtn.style.left = x + 'px';
+            noBtn.style.top = y + 'px';
+        }
+
+        function celebrate() {
+            document.getElementById('headline').innerText = "YAYYYYY! 🎉❤️";
+            document.getElementById('message').innerText = "You just made my entire week! Let's text and figure out a day. Check your phone soon! 😉";
+            document.getElementById('main-gif').src = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbW15M3c0eW12OHd1eG95ZXFkdzE4eXZ5OHBmdWNsOHV5dHd1eSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/lTQF0ODLLjhza/giphy.gif"; // Happy GIF
+            
+            // Hide the buttons after clicking yes
+            document.querySelector('.buttons').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
