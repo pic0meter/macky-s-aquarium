@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Polygenic Betta Genetic Lab - Organic Asset Engine</title>
+    <title>Polygenic Betta Genetic Lab - High-Fidelity Organic Asset Engine</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #01040a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #010408; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
         .hud-panel {
@@ -15,13 +15,13 @@
             left: 25px;
             z-index: 10;
             color: #e2e8f0;
-            background: rgba(2, 8, 18, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(2, 8, 18, 0.94);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
             padding: 22px;
-            border: 1px solid rgba(0, 180, 216, 0.2);
+            border: 1px solid rgba(0, 180, 216, 0.25);
             border-radius: 14px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
             width: 320px;
         }
         .hud-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; color: #00e5ff; }
@@ -81,7 +81,20 @@
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .discovery-modal.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .modal-header { font-size: 1.1rem; font-weight: bold; color: #00e5ff; margin-bottom: 15px; border-bottom: 1px solid rgba(0, 229, 255, 0.2); padding-bottom: 10px; display: flex; justify-content: space-between; }
+        .modal-header { font-size: 1.1rem; font-weight: bold; color: #00e5ff; margin-bottom: 15px; border-bottom: 1px solid rgba(0, 229, 255, 0.2); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .specimen-viewport {
+            width: 100%;
+            height: 160px;
+            background: radial-gradient(circle at center, #061528 0%, #01040a 100%);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        .specimen-viewport canvas { width: 100%; height: 100%; }
+
         .gene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; font-family: monospace; font-size: 0.8rem; }
         .gene-card { background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04); }
         .gene-name { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
@@ -90,13 +103,35 @@
         .gene-alert-pos { color: #ccff33; font-weight: bold; }
         .close-modal-btn { background: #00e5ff; color: #020b14; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
 
+        /* Floating Tooltip Detail Card on Hover */
+        .tooltip-card {
+            position: absolute;
+            z-index: 50;
+            pointer-events: none;
+            background: rgba(2, 8, 18, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 229, 255, 0.35);
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: #f8fafc;
+            font-size: 0.75rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            display: none;
+            width: 220px;
+        }
+        .tooltip-title { color: #00e5ff; font-weight: bold; font-size: 0.85rem; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 4px; }
+        .tooltip-row { display: flex; justify-content: space-between; margin-bottom: 3px; font-family: monospace; }
+        .tooltip-label { color: #94a3b8; }
+        .tooltip-val { color: #fff; font-weight: bold; }
+
         .interaction-tip {
             position: absolute;
             bottom: 25px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.35);
             font-size: 0.75rem;
             pointer-events: none;
             text-transform: uppercase;
@@ -107,7 +142,7 @@
 <body>
 
     <div class="hud-panel">
-        <div class="hud-title">🧬 Biological Morph Engine</div>
+        <div class="hud-title">🧬 Sophisticated Morph Engine</div>
         <div class="hud-stat" id="pop-count">Active Phenotypes: 0</div>
         
         <div class="breed-panel">
@@ -118,10 +153,14 @@
         </div>
     </div>
 
+    <!-- Discovery Modal with Rendered Specimen Window -->
     <div class="discovery-modal" id="discovery-window">
         <div class="modal-header">
             <span>🔬 Chromosome Phenotype Card</span>
             <span style="color: #94a3b8; font-size: 0.8rem;" id="fry-id-tag">ID: 0</span>
+        </div>
+        <div class="specimen-viewport">
+            <canvas id="specimen-canvas"></canvas>
         </div>
         <div class="gene-grid" id="gene-display-target"></div>
         <div style="text-align: right;">
@@ -129,8 +168,17 @@
         </div>
     </div>
 
+    <!-- Hover Detail Tooltip -->
+    <div class="tooltip-card" id="tooltip-card">
+        <div class="tooltip-title" id="tt-title">Specimen ID</div>
+        <div class="tooltip-row"><span class="tooltip-label">Shape:</span><span class="tooltip-val" id="tt-shape">--</span></div>
+        <div class="tooltip-row"><span class="tooltip-label">Pattern:</span><span class="tooltip-val" id="tt-pattern">--</span></div>
+        <div class="tooltip-row"><span class="tooltip-label">Chroma Base:</span><span class="tooltip-val" id="tt-base">--</span></div>
+        <div class="tooltip-row"><span class="tooltip-label">Vigor Status:</span><span class="tooltip-val" id="tt-status">Stable</span></div>
+    </div>
+
     <div class="interaction-tip">
-        Click fish to pair genotypes • Tap deep water to disperse nutrients
+        Hover fish for telemetry • Click to pair genotypes • Tap deep water for nutrients
     </div>
 
     <canvas id="aquarium-canvas"></canvas>
@@ -138,6 +186,9 @@
     <script>
         const canvas = document.getElementById('aquarium-canvas');
         const ctx = canvas.getContext('2d');
+        const specCanvas = document.getElementById('specimen-canvas');
+        const specCtx = specCanvas.getContext('2d');
+        
         const popCountEl = document.getElementById('pop-count');
         const slotAEl = document.getElementById('slot-a');
         const slotBEl = document.getElementById('slot-b');
@@ -145,9 +196,12 @@
         const discoveryWindow = document.getElementById('discovery-window');
         const geneDisplayTarget = document.getElementById('gene-display-target');
         const fryIdTag = document.getElementById('fry-id-tag');
+        const tooltipCard = document.getElementById('tooltip-card');
 
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
+        specCanvas.width = 430;
+        specCanvas.height = 160;
 
         const school = [];
         const foods = [];
@@ -155,12 +209,44 @@
         const dynamicTrails = [];
         let selectedA = null;
         let selectedB = null;
+        let hoveredFish = null;
+        let latestFry = null;
 
-        for(let i=0; i<60; i++) {
-            particles.push({ x: Math.random() * width, y: Math.random() * height, r: Math.random() * 2 + 0.5, speed: Math.random() * 0.12 + 0.04, phase: Math.random() * Math.PI * 2 });
+        for(let i=0; i<70; i++) {
+            particles.push({ x: Math.random() * width, y: Math.random() * height, r: Math.random() * 2 + 0.4, speed: Math.random() * 0.12 + 0.03, phase: Math.random() * Math.PI * 2 });
         }
 
         window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
+
+        window.addEventListener('mousemove', (e) => {
+            if (discoveryWindow.classList.contains('show')) return;
+            if (e.clientX < 360 && e.clientY < 420) {
+                tooltipCard.style.display = 'none';
+                hoveredFish = null;
+                return;
+            }
+
+            let found = null;
+            for (let betta of school) {
+                const dist = Math.sqrt((e.clientX - betta.x) ** 2 + (e.clientY - betta.y) ** 2);
+                if (dist < 55) { found = betta; break; }
+            }
+
+            hoveredFish = found;
+            if (hoveredFish) {
+                tooltipCard.style.display = 'block';
+                tooltipCard.style.left = `${e.clientX + 15}px`;
+                tooltipCard.style.top = `${e.clientY + 15}px`;
+                document.getElementById('tt-title').innerText = `Specimen ID-${hoveredFish.id}`;
+                document.getElementById('tt-shape').innerText = hoveredFish.phenotype.shape;
+                document.getElementById('tt-pattern').innerText = hoveredFish.phenotype.pattern;
+                document.getElementById('tt-base').innerText = `${Math.floor(hoveredFish.phenotype.hBase)}° HSL`;
+                document.getElementById('tt-status').innerText = hoveredFish.phenotype.clampedFin ? "Clamped Syndrome" : hoveredFish.phenotype.iridescent ? "Iridescent Crystalline" : "Normal Vigor";
+                document.getElementById('tt-status').style.color = hoveredFish.phenotype.clampedFin ? "#ff3366" : hoveredFish.phenotype.iridescent ? "#ccff33" : "#fff";
+            } else {
+                tooltipCard.style.display = 'none';
+            }
+        });
 
         window.addEventListener('click', (e) => {
             if (e.clientX < 360 && e.clientY < 420) return;
@@ -195,9 +281,11 @@
             if (!selectedA || !selectedB) return;
             const fry = new GeneticBetta(selectedA.genome, selectedB.genome, width / 2, height / 2 - 40);
             school.push(fry);
+            latestFry = fry;
             triggerDiscoveryWindow(fry);
             selectedA = null; selectedB = null;
             updateSelectionHUD();
+            tooltipCard.style.display = 'none';
         }
 
         function triggerDiscoveryWindow(fish) {
@@ -256,22 +344,22 @@
 
                 this.patternSeeds = [];
                 let randGen = Math.sin(this.id * 8543.21);
-                for(let k = 0; k < 25; k++) {
+                for(let k = 0; k < 30; k++) {
                     randGen = Math.sin(randGen * 456.789);
                     this.patternSeeds.push({
                         segment: Math.floor((randGen + 1) * 6),
                         ang: randGen * Math.PI * 2,
-                        size: 5 + Math.abs(randGen) * 15,
-                        opacity: 0.4 + Math.abs(randGen) * 0.5
+                        size: 4 + Math.abs(randGen) * 16,
+                        opacity: 0.5 + Math.abs(randGen) * 0.45
                     });
                 }
 
                 this.maxTurnRate = 0.035;
                 if (this.phenotype.clampedFin) this.maxTurnRate *= 0.6;
 
-                this.bodySegments = 14;
+                this.bodySegments = 16;
                 this.history = [];
-                for(let i = 0; i < 60; i++) this.history.push({ x: this.x, y: this.y, angle: this.angle });
+                for(let i = 0; i < 70; i++) this.history.push({ x: this.x, y: this.y, angle: this.angle });
                 this.swimCycle = Math.random() * 100;
             }
 
@@ -301,11 +389,10 @@
                     iridescent: tVal > 0.82
                 };
 
-                // Real tissue parameters (slightly desaturated core with deep translucency overrides)
-                this.colorCore = hslStr(this.phenotype.hBase, 85, 45, 0.85);
-                this.colorAcc = hslStr(this.phenotype.hAcc, 90, 52, 0.7);
-                this.colorDark = hslStr((this.phenotype.hBase + 180) % 360, 60, 14, 0.8);
-                this.colorTrim = hslStr(this.phenotype.hAcc, 95, 75, 0.5);
+                this.colorCore = hslStr(this.phenotype.hBase, 90, 48, 0.9);
+                this.colorAcc = hslStr(this.phenotype.hAcc, 95, 55, 0.75);
+                this.colorDark = hslStr((this.phenotype.hBase + 180) % 360, 65, 12, 0.85);
+                this.colorTrim = hslStr(this.phenotype.hAcc, 100, 78, 0.6);
 
                 this.targetSpeed = this.phenotype.clampedFin ? 0.75 : this.phenotype.iridescent ? 1.7 : 1.2;
             }
@@ -333,12 +420,12 @@
                 this.swimCycle += this.speed * 0.05 + 0.01;
                 
                 this.history.unshift({ x: this.x, y: this.y, angle: this.angle });
-                if (this.history.length > 60) this.history.pop();
+                if (this.history.length > 70) this.history.pop();
 
-                if (this.phenotype.iridescent && Math.random() < 0.3) {
+                if (this.phenotype.iridescent && Math.random() < 0.35) {
                     dynamicTrails.push({
-                        x: this.history[10].x + (Math.random()-0.5)*8, y: this.history[10].y + (Math.random()-0.5)*8,
-                        r: Math.random() * 2 + 0.5, alpha: 0.8,
+                        x: this.history[12].x + (Math.random()-0.5)*8, y: this.history[12].y + (Math.random()-0.5)*8,
+                        r: Math.random() * 2 + 0.5, alpha: 0.85,
                         color: this.colorTrim
                     });
                 }
@@ -369,13 +456,11 @@
                 if (count > 0 || fed) this.targetAngle = Math.atan2(fY, fX);
             }
 
-            // --- PROCEDURAL BIOLOGICAL TEXTURE APPLIER ---
-            applyRealisticTexture(customCtx, isBody = false) {
-                // Primary deep layer 3D gradient
-                let depthGrad = customCtx.createLinearGradient(this.history[12].x, this.history[12].y, this.history[0].x, this.history[0].y);
-                depthGrad.addColorStop(0, hslStr(this.phenotype.hBase, 80, 25, isBody ? 0.95 : 0.4));
-                depthGrad.addColorStop(0.5, this.colorCore);
-                depthGrad.addColorStop(1, hslStr(this.phenotype.hBase, 95, 60, isBody ? 0.95 : 0.6));
+            applySophisticatedTexture(customCtx, isBody = false) {
+                let depthGrad = customCtx.createLinearGradient(this.history[14].x, this.history[14].y, this.history[0].x, this.history[0].y);
+                depthGrad.addColorStop(0, hslStr(this.phenotype.hBase, 85, 20, isBody ? 0.98 : 0.5));
+                depthGrad.addColorStop(0.4, this.colorCore);
+                depthGrad.addColorStop(1, hslStr(this.phenotype.hBase, 95, 65, isBody ? 0.98 : 0.7));
                 customCtx.fillStyle = depthGrad;
                 customCtx.fill();
 
@@ -386,8 +471,8 @@
                     this.patternSeeds.forEach(s => {
                         const n = this.history[Math.min(s.segment * 2, this.history.length-1)];
                         let patchGrad = customCtx.createRadialGradient(n.x, n.y, 0, n.x, n.y, s.size);
-                        patchGrad.addColorStop(0, hslStr((this.phenotype.hBase + 180) % 360, 50, 12, s.opacity));
-                        patchGrad.addColorStop(0.8, hslStr((this.phenotype.hBase + 180) % 360, 60, 16, s.opacity * 0.5));
+                        patchGrad.addColorStop(0, hslStr((this.phenotype.hBase + 170) % 360, 70, 10, s.opacity));
+                        patchGrad.addColorStop(0.75, hslStr((this.phenotype.hBase + 190) % 360, 60, 15, s.opacity * 0.6));
                         patchGrad.addColorStop(1, "rgba(0,0,0,0)");
                         
                         customCtx.fillStyle = patchGrad;
@@ -396,12 +481,12 @@
                     
                     this.patternSeeds.forEach((s, i) => {
                         if (i % 2 === 0) {
-                            const n = this.history[Math.min((13 - s.segment) * 2, this.history.length-1)];
-                            let accentGrad = customCtx.createRadialGradient(n.x, n.y, 0, n.x, n.y, s.size * 0.7);
-                            accentGrad.addColorStop(0, hslStr(this.phenotype.hAcc, 90, 50, s.opacity * 0.9));
+                            const n = this.history[Math.min((15 - s.segment) * 2, this.history.length-1)];
+                            let accentGrad = customCtx.createRadialGradient(n.x, n.y, 0, n.x, n.y, s.size * 0.75);
+                            accentGrad.addColorStop(0, hslStr(this.phenotype.hAcc, 95, 55, s.opacity));
                             accentGrad.addColorStop(1, "rgba(0,0,0,0)");
                             customCtx.fillStyle = accentGrad;
-                            customCtx.beginPath(); customCtx.arc(n.x, n.y, s.size * 0.7, 0, Math.PI*2); customCtx.fill();
+                            customCtx.beginPath(); customCtx.arc(n.x, n.y, s.size * 0.75, 0, Math.PI*2); customCtx.fill();
                         }
                     });
                 } 
@@ -410,52 +495,51 @@
                         const n = this.history[i * 2];
                         const normalAng = n.angle + Math.PI / 2;
                         let stripeGrad = customCtx.createLinearGradient(
-                            n.x - Math.cos(normalAng)*16, n.y - Math.sin(normalAng)*16,
-                            n.x + Math.cos(normalAng)*16, n.y + Math.sin(normalAng)*16
+                            n.x - Math.cos(normalAng)*18, n.y - Math.sin(normalAng)*18,
+                            n.x + Math.cos(normalAng)*18, n.y + Math.sin(normalAng)*18
                         );
                         stripeGrad.addColorStop(0, "rgba(0,0,0,0)");
-                        stripeGrad.addColorStop(0.3, hslStr((this.phenotype.hBase + 180) % 360, 70, 12, 0.85));
-                        stripeGrad.addColorStop(0.7, hslStr((this.phenotype.hBase + 180) % 360, 70, 12, 0.85));
+                        stripeGrad.addColorStop(0.3, hslStr((this.phenotype.hBase + 180) % 360, 80, 10, 0.9));
+                        stripeGrad.addColorStop(0.7, hslStr((this.phenotype.hBase + 180) % 360, 80, 10, 0.9));
                         stripeGrad.addColorStop(1, "rgba(0,0,0,0)");
                         
                         customCtx.strokeStyle = stripeGrad;
-                        customCtx.lineWidth = 4.5;
+                        customCtx.lineWidth = 5.0;
                         customCtx.beginPath();
-                        customCtx.moveTo(n.x + Math.cos(normalAng) * 16, n.y + Math.sin(normalAng) * 16);
-                        customCtx.lineTo(n.x - Math.cos(normalAng) * 16, n.y - Math.sin(normalAng) * 16);
+                        customCtx.moveTo(n.x + Math.cos(normalAng) * 18, n.y + Math.sin(normalAng) * 18);
+                        customCtx.lineTo(n.x - Math.cos(normalAng) * 18, n.y - Math.sin(normalAng) * 18);
                         customCtx.stroke();
                     }
                 } 
                 else if (this.phenotype.pattern === "Candy Solid") {
-                    let grad = customCtx.createLinearGradient(this.history[12].x, this.history[12].y, this.history[0].x, this.history[0].y);
+                    let grad = customCtx.createLinearGradient(this.history[14].x, this.history[14].y, this.history[0].x, this.history[0].y);
                     grad.addColorStop(0, this.colorAcc);
-                    grad.addColorStop(0.4, this.colorCore);
+                    grad.addColorStop(0.5, this.colorCore);
                     grad.addColorStop(1, this.colorTrim);
                     customCtx.fillStyle = grad;
                     customCtx.fill();
                 }
 
-                // Append organic cellular noise overlay (Micro scales profile)
-                customCtx.fillStyle = "rgba(255, 255, 255, 0.05)";
-                for(let k=0; k<15; k++) {
-                    let hNode = this.history[Math.min(k*3, this.history.length-1)];
-                    customCtx.fillRect(hNode.x + Math.sin(k)*6, hNode.y + Math.cos(k)*4, 2, 2);
+                // Photorealistic Iridescent Guanine Micro-Crystals Layer
+                customCtx.fillStyle = "rgba(255, 255, 255, 0.12)";
+                for(let k=0; k<25; k++) {
+                    let hNode = this.history[Math.min(k*2, this.history.length-1)];
+                    customCtx.fillRect(hNode.x + Math.sin(k*1.5)*7, hNode.y + Math.cos(k*1.5)*5, 1.8, 1.8);
                 }
 
                 customCtx.restore();
             }
 
-            // --- PROCEDURAL FIN ANATOMY COMPILER ---
-            drawOrganicFinMesh(startIndex, rays, lenScale, widthRange, typeSign) {
+            drawSophisticatedFinMesh(customCtx, startIndex, rays, lenScale, widthRange, typeSign, isPreview = false) {
                 let finScale = this.phenotype.clampedFin ? 0.45 : 1.0;
-                ctx.save();
-                ctx.beginPath();
+                customCtx.save();
+                customCtx.beginPath();
                 
                 let structuralNodes = [];
 
                 for (let r = 0; r <= rays; r++) {
                     const ratio = r / rays;
-                    const histIdx = Math.floor(startIndex + ratio * 10);
+                    const histIdx = Math.floor(startIndex + ratio * 12);
                     const node = this.history[Math.min(histIdx, this.history.length - 1)];
                     
                     let dynamicWave = Math.sin(this.swimCycle - (histIdx * 0.22));
@@ -464,203 +548,204 @@
                     
                     const fAngle = node.angle + Math.PI + (0.65 * typeSign) + angleOffset;
                     
-                    let baseLen = 42 * finScale * lenScale;
-                    if (this.phenotype.shape === "Halfmoon") baseLen *= 1.45; 
-                    if (this.phenotype.shape === "Veiltail") baseLen *= 1.75 * (0.65 + ratio * 0.5); 
+                    let baseLen = 44 * finScale * lenScale;
+                    if (this.phenotype.shape === "Halfmoon") baseLen *= 1.5; 
+                    if (this.phenotype.shape === "Veiltail") baseLen *= 1.8; 
 
                     let endX = node.x + Math.cos(fAngle) * baseLen;
-                    let endY = node.y + Math.sin(fAngle) * baseLen + (dynamicWave * 5);
+                    let endY = node.y + Math.sin(fAngle) * baseLen + (dynamicWave * (isPreview ? 2 : 5));
 
-                    if (r === 0) ctx.moveTo(node.x, node.y);
+                    if (r === 0) customCtx.moveTo(node.x, node.y);
                     structuralNodes.push({ bx: node.x, by: node.y, ex: endX, ey: endY });
-                    ctx.lineTo(endX, endY);
+                    customCtx.lineTo(endX, endY);
                 }
 
-                for (let r = rays; r >= 0; r--) ctx.lineTo(structuralNodes[r].bx, structuralNodes[r].by);
-                ctx.closePath();
+                for (let r = rays; r >= 0; r--) customCtx.lineTo(structuralNodes[r].bx, structuralNodes[r].by);
+                customCtx.closePath();
                 
-                ctx.save();
-                ctx.clip();
-                this.applyRealisticTexture(ctx, false);
-                ctx.restore();
+                customCtx.save();
+                customCtx.clip();
+                this.applySophisticatedTexture(customCtx, false);
+                customCtx.restore();
 
-                // Draw explicit skeletal tissue rays (Removes flat shape appearance)
-                ctx.save();
+                // Advanced branching fin rays with dual-weight strokes
+                customCtx.save();
                 for (let r = 0; r <= rays; r++) {
-                    let rayGrad = ctx.createLinearGradient(structuralNodes[r].bx, structuralNodes[r].by, structuralNodes[r].ex, structuralNodes[r].ey);
-                    rayGrad.addColorStop(0, "rgba(255,255,255,0.4)");
+                    let rayGrad = customCtx.createLinearGradient(structuralNodes[r].bx, structuralNodes[r].by, structuralNodes[r].ex, structuralNodes[r].ey);
+                    rayGrad.addColorStop(0, "rgba(255,255,255,0.5)");
                     rayGrad.addColorStop(0.5, this.colorTrim);
                     rayGrad.addColorStop(1, "rgba(255,255,255,0.0)");
                     
-                    ctx.strokeStyle = rayGrad;
-                    ctx.lineWidth = r % 3 === 0 ? 1.5 : 0.8; // Soft variant branching
-                    ctx.beginPath();
-                    ctx.moveTo(structuralNodes[r].bx, structuralNodes[r].by);
-                    ctx.lineTo(structuralNodes[r].ex, structuralNodes[r].ey);
-                    ctx.stroke();
+                    customCtx.strokeStyle = rayGrad;
+                    customCtx.lineWidth = r % 2 === 0 ? 1.4 : 0.6;
+                    customCtx.beginPath();
+                    customCtx.moveTo(structuralNodes[r].bx, structuralNodes[r].by);
+                    customCtx.lineTo(structuralNodes[r].ex, structuralNodes[r].ey);
+                    customCtx.stroke();
                 }
-                ctx.restore();
+                customCtx.restore();
 
                 if (this.phenotype.shape === "Crowntail") {
-                    ctx.save(); ctx.globalCompositeOperation = "destination-out";
-                    ctx.fillStyle = "rgba(0,0,0,1)";
+                    customCtx.save(); customCtx.globalCompositeOperation = "destination-out";
+                    customCtx.fillStyle = "rgba(0,0,0,1)";
                     for (let r = 0; r < rays; r += 2) {
-                        ctx.beginPath();
-                        ctx.moveTo(structuralNodes[r].ex, structuralNodes[r].ey);
-                        ctx.lineTo(structuralNodes[r+1].ex, structuralNodes[r+1].ey);
-                        ctx.lineTo((structuralNodes[r].bx + structuralNodes[r].ex)/2, (structuralNodes[r].by + structuralNodes[r].ey)/2);
-                        ctx.closePath(); ctx.fill();
+                        customCtx.beginPath();
+                        customCtx.moveTo(structuralNodes[r].ex, structuralNodes[r].ey);
+                        customCtx.lineTo(structuralNodes[r+1].ex, structuralNodes[r+1].ey);
+                        customCtx.lineTo((structuralNodes[r].bx + structuralNodes[r].ex)/2, (structuralNodes[r].by + structuralNodes[r].ey)/2);
+                        customCtx.closePath(); customCtx.fill();
                     }
-                    ctx.restore();
+                    customCtx.restore();
                 }
 
-                // Render soft outer edge glowing membrane border
-                let edgeGrad = ctx.createLinearGradient(structuralNodes[0].ex, structuralNodes[0].ey, structuralNodes[rays].ex, structuralNodes[rays].ey);
-                edgeGrad.addColorStop(0, this.colorTrim); edgeGrad.addColorStop(0.5, "rgba(255,255,255,0.6)"); edgeGrad.addColorStop(1, this.colorTrim);
-                ctx.strokeStyle = edgeGrad;
-                ctx.lineWidth = 1.0;
-                ctx.beginPath();
-                ctx.moveTo(structuralNodes[0].ex, structuralNodes[0].ey);
-                for(let r=1; r<=rays; r++) ctx.lineTo(structuralNodes[r].ex, structuralNodes[r].ey);
-                ctx.stroke();
+                let edgeGrad = customCtx.createLinearGradient(structuralNodes[0].ex, structuralNodes[0].ey, structuralNodes[rays].ex, structuralNodes[rays].ey);
+                edgeGrad.addColorStop(0, this.colorTrim); edgeGrad.addColorStop(0.5, "rgba(255,255,255,0.8)"); edgeGrad.addColorStop(1, this.colorTrim);
+                customCtx.strokeStyle = edgeGrad;
+                customCtx.lineWidth = 1.1;
+                customCtx.beginPath();
+                customCtx.moveTo(structuralNodes[0].ex, structuralNodes[0].ey);
+                for(let r=1; r<=rays; r++) customCtx.lineTo(structuralNodes[r].ex, structuralNodes[r].ey);
+                customCtx.stroke();
 
-                ctx.restore();
+                customCtx.restore();
             }
 
-            draw() {
-                ctx.save();
+            drawTo(targetCtx, isPreview = false) {
+                targetCtx.save();
                 const dir = this.facingRight ? 1 : -1;
 
-                if (selectedA === this || selectedB === this) {
-                    ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)'; ctx.lineWidth = 1;
-                    ctx.setLineDash([4, 4]);
-                    ctx.beginPath(); ctx.arc(this.x, this.y, 45, 0, Math.PI*2); ctx.stroke();
-                    ctx.setLineDash([]);
+                if (!isPreview && (selectedA === this || selectedB === this || hoveredFish === this)) {
+                    targetCtx.strokeStyle = hoveredFish === this ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 229, 255, 0.5)';
+                    targetCtx.lineWidth = 1.2;
+                    targetCtx.setLineDash([4, 4]);
+                    targetCtx.beginPath(); targetCtx.arc(this.x, this.y, 48, 0, Math.PI*2); targetCtx.stroke();
+                    targetCtx.setLineDash([]);
                 }
 
-                // 1. Structural Fin Meshes
-                this.drawOrganicFinMesh(6, 16, 1.0, 1.1, 1);
-                this.drawOrganicFinMesh(3, 16, 0.9, 1.0, -1);
+                // 1. Dorsal and Ventral Fin Assemblies
+                this.drawSophisticatedFinMesh(targetCtx, 6, 18, 1.0, 1.15, 1, isPreview);
+                this.drawSophisticatedFinMesh(targetCtx, 3, 18, 0.9, 1.05, -1, isPreview);
 
                 // 2. Caudal Fin Assembly
-                ctx.save();
-                ctx.beginPath();
-                let cRays = 22;
+                targetCtx.save();
+                targetCtx.beginPath();
+                let cRays = 24;
                 let cNodes = [];
                 let finScale = this.phenotype.clampedFin ? 0.5 : 1.0;
 
                 for (let r = 0; r <= cRays; r++) {
                     const ratio = r / cRays;
-                    const histIdx = Math.floor(12 + ratio * 10);
+                    const histIdx = Math.floor(14 + ratio * 12);
                     const node = this.history[Math.min(histIdx, this.history.length - 1)];
-                    let spreadFactor = this.phenotype.shape === "Halfmoon" ? 2.5 : this.phenotype.shape === "Plakat" ? 0.9 : 1.4;
+                    let spreadFactor = this.phenotype.shape === "Halfmoon" ? 2.6 : this.phenotype.shape === "Plakat" ? 0.9 : 1.45;
                     
                     const spreadAngle = (ratio - 0.5) * spreadFactor;
                     const tAngle = node.angle + Math.PI + spreadAngle;
                     
-                    let cLen = 48 * finScale;
-                    if (this.phenotype.shape === "Halfmoon") cLen *= 1.35;
-                    if (this.phenotype.shape === "Veiltail") cLen *= 1.65;
+                    let cLen = 50 * finScale;
+                    if (this.phenotype.shape === "Halfmoon") cLen *= 1.4;
+                    if (this.phenotype.shape === "Veiltail") cLen *= 1.7;
                     
                     let endX = node.x + Math.cos(tAngle) * cLen;
-                    let endY = node.y + Math.sin(tAngle) * cLen + (Math.sin(this.swimCycle - histIdx*0.18)*5);
+                    let endY = node.y + Math.sin(tAngle) * cLen + (Math.sin(this.swimCycle - histIdx*0.18)*(isPreview ? 2 : 5));
 
-                    if (r === 0) ctx.moveTo(node.x, node.y);
+                    if (r === 0) targetCtx.moveTo(node.x, node.y);
                     cNodes.push({ bx: node.x, by: node.y, ex: endX, ey: endY });
-                    ctx.lineTo(endX, endY);
+                    targetCtx.lineTo(endX, endY);
                 }
-                for (let r = cRays; r >= 0; r--) ctx.lineTo(cNodes[r].bx, cNodes[r].by);
-                ctx.closePath();
+                for (let r = cRays; r >= 0; r--) targetCtx.lineTo(cNodes[r].bx, cNodes[r].by);
+                targetCtx.closePath();
                 
-                ctx.save();
-                ctx.clip();
-                this.applyRealisticTexture(ctx, false);
-                ctx.restore();
+                targetCtx.save();
+                targetCtx.clip();
+                this.applySophisticatedTexture(targetCtx, false);
+                targetCtx.restore();
 
-                // Biological structural lines inside Caudal Fin
                 for (let r = 0; r <= cRays; r++) {
-                    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-                    ctx.lineWidth = 0.8;
-                    ctx.beginPath(); ctx.moveTo(cNodes[r].bx, cNodes[r].by); ctx.lineTo(cNodes[r].ex, cNodes[r].ey); ctx.stroke();
+                    targetCtx.strokeStyle = "rgba(255,255,255,0.22)";
+                    targetCtx.lineWidth = 0.8;
+                    targetCtx.beginPath(); targetCtx.moveTo(cNodes[r].bx, cNodes[r].by); targetCtx.lineTo(cNodes[r].ex, cNodes[r].ey); targetCtx.stroke();
                 }
 
                 if (this.phenotype.shape === "Crowntail") {
-                    ctx.save(); ctx.globalCompositeOperation = "destination-out";
-                    ctx.fillStyle = "rgba(0,0,0,1)";
+                    targetCtx.save(); targetCtx.globalCompositeOperation = "destination-out";
+                    targetCtx.fillStyle = "rgba(0,0,0,1)";
                     for (let r = 0; r < cRays; r += 2) {
-                        ctx.beginPath(); ctx.moveTo(cNodes[r].ex, cNodes[r].ey); ctx.lineTo(cNodes[r+1].ex, cNodes[r+1].ey);
-                        ctx.lineTo((cNodes[r].bx+cNodes[r].ex)/2, (cNodes[r].by+cNodes[r].ex)/2); ctx.closePath(); ctx.fill();
+                        targetCtx.beginPath(); targetCtx.moveTo(cNodes[r].ex, cNodes[r].ey); targetCtx.lineTo(cNodes[r+1].ex, cNodes[r+1].ey);
+                        targetCtx.lineTo((cNodes[r].bx+cNodes[r].ex)/2, (cNodes[r].by+cNodes[r].ex)/2); targetCtx.closePath(); targetCtx.fill();
                     }
-                    ctx.restore();
+                    targetCtx.restore();
                 }
 
-                ctx.strokeStyle = this.colorTrim;
-                ctx.lineWidth = 1.2;
-                ctx.beginPath();
-                ctx.moveTo(cNodes[0].ex, cNodes[0].ey);
-                for(let r=1; r<=cRays; r++) ctx.lineTo(cNodes[r].ex, cNodes[r].ey);
-                ctx.stroke();
-                ctx.restore();
+                targetCtx.strokeStyle = this.colorTrim;
+                targetCtx.lineWidth = 1.3;
+                targetCtx.beginPath();
+                targetCtx.moveTo(cNodes[0].ex, cNodes[0].ey);
+                for(let r=1; r<=cRays; r++) targetCtx.lineTo(cNodes[r].ex, cNodes[r].ey);
+                targetCtx.stroke();
+                targetCtx.restore();
 
-                // 3. Thick 3D Muscle Contour Rendering (Eliminates flat segments appearance)
-                ctx.save();
-                ctx.beginPath();
-                // Create progressive outer shell layout envelope path
+                // 3. Sophisticated Muscular Torso Contour
+                targetCtx.save();
+                targetCtx.beginPath();
                 for (let i = 0; i < this.bodySegments; i++) {
-                    const node = this.history[Math.min(i * 3, this.history.length - 1)];
-                    const thickness = (10.0 * (1 - (i / this.bodySegments))) + 1.5;
-                    ctx.arc(node.x, node.y, thickness, 0, Math.PI * 2);
+                    const node = this.history[Math.min(i * 2, this.history.length - 1)];
+                    const thickness = (11.0 * (1 - (i / this.bodySegments))) + 1.8;
+                    targetCtx.arc(node.x, node.y, thickness, 0, Math.PI * 2);
                 }
-                ctx.closePath();
-                ctx.clip();
-                this.applyRealisticTexture(ctx, true);
-                ctx.restore();
+                targetCtx.closePath();
+                targetCtx.clip();
+                this.applySophisticatedTexture(targetCtx, true);
+                targetCtx.restore();
 
-                // 4. Photorealistic Head Depth Contour details
+                // 4. Photorealistic Head & Eye Details
                 const headNode = this.history[0];
                 
-                // Gills shadow line depth overlay
-                ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(headNode.x - (3 * dir), headNode.y, 7, -Math.PI/3, Math.PI/3);
-                ctx.stroke();
+                targetCtx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+                targetCtx.lineWidth = 2.2;
+                targetCtx.beginPath();
+                targetCtx.arc(headNode.x - (3.5 * dir), headNode.y, 7.5, -Math.PI/3, Math.PI/3);
+                targetCtx.stroke();
 
-                // Eye structure setup (Real gloss layering)
-                let eyeX = headNode.x + (6 * dir);
+                let eyeX = headNode.x + (6.5 * dir);
                 let eyeY = headNode.y - 1.5;
                 
-                ctx.fillStyle = "#040914";
-                ctx.beginPath(); ctx.arc(eyeX, eyeY, 3.2, 0, Math.PI*2); ctx.fill();
+                targetCtx.fillStyle = "#02050a";
+                targetCtx.beginPath(); targetCtx.arc(eyeX, eyeY, 3.5, 0, Math.PI*2); targetCtx.fill();
                 
-                let irisGrad = ctx.createRadialGradient(eyeX, eyeY, 0, eyeX, eyeY, 3);
+                let irisGrad = targetCtx.createRadialGradient(eyeX, eyeY, 0, eyeX, eyeY, 3.2);
                 irisGrad.addColorStop(0, "#000");
                 irisGrad.addColorStop(0.7, this.colorTrim);
-                irisGrad.addColorStop(1, "#040914");
-                ctx.fillStyle = irisGrad;
-                ctx.beginPath(); ctx.arc(eyeX, eyeY, 2.4, 0, Math.PI*2); ctx.fill();
+                irisGrad.addColorStop(1, "#02050a");
+                targetCtx.fillStyle = irisGrad;
+                targetCtx.beginPath(); targetCtx.arc(eyeX, eyeY, 2.6, 0, Math.PI*2); targetCtx.fill();
 
-                // Lens Reflection Highlight Specular Dot
-                ctx.fillStyle = "rgba(255,255,255,0.95)";
-                ctx.beginPath(); ctx.arc(eyeX + (1 * dir), eyeY - 1, 0.8, 0, Math.PI*2); ctx.fill();
+                targetCtx.fillStyle = "rgba(255,255,255,0.95)";
+                targetCtx.beginPath(); targetCtx.arc(eyeX + (1 * dir), eyeY - 1.1, 0.9, 0, Math.PI*2); targetCtx.fill();
 
-                ctx.restore();
+                targetCtx.restore();
             }
+
+            draw() { this.drawTo(ctx, false); }
         }
 
         for(let i = 0; i < 6; i++) school.push(new GeneticBetta());
 
         function engineLoop() {
             if (discoveryWindow.classList.contains('show')) {
-                ctx.fillStyle = 'rgba(1, 4, 10, 0.08)';
-                ctx.fillRect(0, 0, width, height);
-                const specimen = school[school.length - 1];
-                if (specimen) { specimen.speed = 0; specimen.update(); specimen.draw(); }
+                specCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
+                // Render stationary specimen inside modal preview window
+                if (latestFry) {
+                    latestFry.x = specCanvas.width / 2;
+                    latestFry.y = specCanvas.height / 2;
+                    latestFry.facingRight = true;
+                    latestFry.swimCycle += 0.04;
+                    latestFry.drawTo(specCtx, true);
+                }
                 requestAnimationFrame(engineLoop);
                 return;
             }
 
-            // Oceanic dark light gradient frame backdrop
             const bg = ctx.createLinearGradient(0, 0, 0, height);
             bg.addColorStop(0, '#020b18'); bg.addColorStop(0.6, '#01050d'); bg.addColorStop(1, '#000205');
             ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
