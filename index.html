@@ -1,38 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My 3D Model Website</title>
-  
-  <!-- Import the Google Model Viewer component -->
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #1a1a1a;
-    }
-    model-viewer {
-      width: 100%;
-      height: 90vh;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My 3D Model</title>
+    <!-- Import the Google Model Viewer script -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        model-viewer {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
 </head>
 <body>
 
-  <!-- Embed your model -->
-  <model-viewer 
-    src="model.gltf" 
-    alt="A 3D textured model" 
-    auto-rotate 
-    camera-controls 
-    ar>
-  </model-viewer>
+    <!-- This displays your GLB model. Make sure src matches your file name! -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    
+    <model-viewer 
+        src="model.glb" 
+        ios-src="" 
+        alt="A 3D model" 
+        auto-rotate 
+        camera-controls 
+        ar>
+    </model-viewer>
 
 </body>
 </html>
